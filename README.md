@@ -14,17 +14,26 @@ message made by one decrypts in the other.
 
 > **This is the first public beta of the v6 keyfile‑first CLI.** The cryptography and
 > wire format are unchanged and stable since v4.06 — v6 interoperates with every
-> earlier version and with the HTML tool (confirm with `lc verify`). What's new is the
-> CLI workflow. Please report anything rough.
+> earlier version and with the HTML tool (confirm with `lc verify`). Please report
+> anything rough.
 
----
+## Downloads
 
-## The command‑line tool (start here)
+**All downloads are on the [Releases page](../../releases/latest)** — the CLI, the
+HTML tool, the Android/PWA build, the guides (PDF), the test vectors, and
+`SHA256SUMS.txt`. Grab what you need there.
 
-Requires Python 3.8+ (already on macOS and Linux).
+You can also just open the browser tool directly:
+**[linear-cipher-6.00.html](linear-cipher-6.00.html)** (download it and double‑click —
+it works offline).
+
+## The command‑line tool
+
+Requires Python 3.8+ (already on macOS and Linux). Download `linear-cipher-cli-6.00.zip`
+from the [Releases page](../../releases/latest), unzip it, then:
 
 ```bash
-cd cli
+cd linear-cipher-cli-6.00
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .          # installs the `lc` command
 
@@ -35,9 +44,8 @@ lc d "LC5.…"                    # decrypt: finds the right saved key by itself
 lc verify                       # confirm this build matches the test vectors
 ```
 
-Walkthrough: **[docs/CLI-QuickStart.md](docs/CLI-QuickStart.md)** ·
-full reference: **[docs/User-Guide.md](docs/User-Guide.md)** ·
-in‑tool: `lc help`, `lc howto`.
+The full Quick Start and User Guide (PDF) are attached to the release, and `lc help`
+/ `lc howto` cover everything in‑tool.
 
 ### What's new in v6 (keyfile‑first)
 
@@ -50,13 +58,12 @@ in‑tool: `lc help`, `lc howto`.
 
 ## The HTML tool (conceptual proof)
 
-Open **[web/linear-cipher-6.00.html](web/linear-cipher-6.00.html)** in any browser —
-double‑click, no server, works offline. An installable offline **Android app (PWA)**
-build is in **[android/](android/)**.
+Open **[linear-cipher-6.00.html](linear-cipher-6.00.html)** in any browser —
+double‑click, no server, works offline. Same passphrase, same messages as the CLI.
 
 ## Verifying your download
 
-Artifacts and their SHA‑256 hashes are in **[dist/SHA256SUMS.txt](dist/SHA256SUMS.txt)**:
+Each release includes `SHA256SUMS.txt`:
 
 ```bash
 sha256sum -c SHA256SUMS.txt     # Linux, in the folder with the files
@@ -64,16 +71,6 @@ shasum -a 256 <file>            # macOS, compare to the line in SHA256SUMS.txt
 ```
 
 Then `lc verify` confirms cryptographic compatibility.
-
-## Repository layout
-
-```
-cli/       the lc command-line tool (centerpiece) + shell completions
-web/       the single-file HTML tool (conceptual proof)
-android/   installable PWA version
-docs/      quick start, user guide, spec
-dist/      packaged downloads + SHA256SUMS.txt
-```
 
 ## License
 
