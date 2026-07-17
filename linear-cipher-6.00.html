@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Linear Cipher v6.00 | Argon2id + AES-256</title>
+<style>
+  :root{
+    --bg:#09090b; --panel:#18181b; --panel2:#111113; --border:#27272a;
+    --text:#fafafa; --muted:#a1a1aa; --accent:#8b5cf6; --accent-hover:#7c46f0;
+    --success:#10b981; --warn:#f59e0b; --danger:#ef4444;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-mono:"SF Mono",Monaco,"Cascadia Code","Roboto Mono",Consolas,monospace;
+  }
+  html{color-scheme:dark}
+  html[data-theme="light"]{color-scheme:light}
+  html[data-theme="light"] body{
+    --bg:#f6f6f7; --panel:#ffffff; --panel2:#f1f1f3; --border:#e4e4e7;
+    --text:#18181b; --muted:#6b6b74; --accent:#7c3aed; --accent-hover:#6d28d9;
+  }
+  html[data-theme="light"] .card{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  html[data-theme="light"] .seg button.active{box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  html[data-theme="light"] .warn-banner{background:rgba(239,68,68,.08);color:#b91c1c}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;padding:2rem 1rem;transition:background .2s,color .2s}
+  .container{max-width:820px;margin:0 auto}
+  header{margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1.25rem;position:relative}
+  .theme-btn{position:absolute;top:0;right:0}
+  .steps-close{margin-left:auto;background:transparent;border:none;color:var(--muted);font-size:1.05rem;line-height:1;cursor:pointer;padding:.2rem .45rem;border-radius:.4rem}
+  .steps-close:hover{color:var(--text)}
+  h1{font-size:1.5rem;font-weight:650;letter-spacing:-.02em;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .badge{display:inline-block;padding:.2rem .5rem;background:var(--success);color:#04120c;font-size:.7rem;font-weight:700;border-radius:.3rem;text-transform:uppercase;letter-spacing:.03em}
+  .subtitle{color:var(--muted);font-size:.9rem;margin-top:.35rem}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:.85rem;padding:1.5rem;margin-bottom:1rem}
+  label{display:block;font-size:.72rem;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem}
+  .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
+  input[type=text],input[type=password],textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:.55rem;padding:.75rem;color:var(--text);font-family:var(--font-mono);font-size:1rem}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  textarea{min-height:120px;resize:vertical;line-height:1.5}
+  .row{display:flex;gap:.6rem;align-items:stretch}
+  .row .grow{flex:1;min-width:0}
+  .btn{padding:.6rem 1rem;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:.85rem;font-weight:550;border-radius:.55rem;cursor:pointer;transition:all .15s;font-family:var(--font-sans);white-space:nowrap}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff}
+  .btn-ghost{background:transparent}
+  .btn.copied{background:var(--success);border-color:var(--success);color:#04120c}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn:disabled:hover{border-color:var(--border);color:var(--text)}
+  .field{margin-bottom:1.1rem}
+  .icon-btn{padding:.6rem .7rem}
+  .wc-select{padding:.6rem .55rem;-webkit-appearance:none;appearance:none;cursor:pointer;text-align:center}
+  .gen-opts{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap}
+  .mini-select{flex:1;min-width:150px;padding:.5rem .6rem;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:.5rem;font-family:var(--font-sans);font-size:.8rem;cursor:pointer}
+  .field-note{margin-top:.5rem;font-size:.78rem;color:var(--muted);line-height:1.5}
+  .match-row{display:flex;align-items:center;gap:.7rem;margin-top:.9rem;flex-wrap:wrap;padding:.7rem .85rem;background:var(--bg);border:1px solid var(--border);border-radius:.55rem}
+  .match-label{font-size:.7rem;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .match-code{font-family:var(--font-mono);font-size:1.15rem;font-weight:700;letter-spacing:.08em;color:var(--muted)}
+  .match-code.ok{color:var(--accent)}
+  .match-hint{font-size:.76rem;color:var(--muted);flex:1;min-width:160px}
+  .meter{height:6px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:.55rem}
+  .meter > span{display:block;height:100%;width:0;transition:width .25s,background .25s}
+  .meter-label{font-size:.78rem;margin-top:.35rem;color:var(--muted);min-height:1.2em}
+  .seg{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:.55rem;padding:.25rem;gap:.15rem;margin-bottom:1.1rem}
+  .seg button{padding:.45rem .95rem;border:none;background:transparent;color:var(--muted);font-size:.85rem;font-weight:550;cursor:pointer;border-radius:.4rem;transition:all .15s;font-family:var(--font-sans)}
+  .seg button.active{background:var(--panel);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .output-box{background:var(--bg);border:1px solid var(--border);border-radius:.55rem;padding:1rem;font-family:var(--font-mono);font-size:1.15rem;line-height:1.7;word-break:break-all;min-height:84px}
+  .output-box:empty::before{content:attr(data-placeholder);color:var(--muted);font-size:.9rem;font-family:var(--font-sans)}
+  .actions{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+  .status{font-size:.85rem;margin-top:.75rem;min-height:1.3em;color:var(--muted)}
+  .status.ok{color:var(--success)} .status.err{color:var(--danger)} .status.work{color:var(--accent)}
+  .hint{margin-top:1rem;font-size:.8rem;color:var(--muted)}
+  details{margin-top:1rem;border:1px solid var(--border);border-radius:.55rem;padding:.5rem .85rem;background:var(--panel2)}
+  summary{cursor:pointer;font-size:.82rem;color:var(--muted);font-weight:600}
+  details p{font-size:.82rem;color:var(--muted);margin-top:.6rem}
+  code{font-family:var(--font-mono);color:var(--text)}
+  .steps{display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+  .step{display:inline-flex;align-items:center;gap:.45rem;font-size:.78rem;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:99px;padding:.3rem .75rem}
+  .step b{display:inline-flex;width:1.15rem;height:1.15rem;border-radius:50%;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;align-items:center;justify-content:center;flex:none}
+  .step .yw{color:var(--accent);font-weight:650}
+  .pass-wrap{position:relative}
+  .pass-mirror{position:absolute;inset:1px;padding:0 .75rem;border-radius:.55rem;display:none;align-items:center;white-space:pre;overflow:hidden;pointer-events:none;font-family:var(--font-mono);font-size:1rem;color:var(--text)}
+  .pass-mirror .fw{color:var(--accent);font-weight:700}
+  input.mirrored{color:transparent;caret-color:var(--text)}
+  .suggest{display:none;margin-top:.65rem;background:rgba(139,92,246,.12);border:1px solid var(--accent);border-radius:.55rem;padding:.65rem .85rem;font-size:.84rem;color:var(--text);align-items:center;gap:.7rem;flex-wrap:wrap}
+  .suggest .yw{color:var(--accent);font-weight:700}
+  .suggest .btn-primary{padding:.45rem .85rem;font-size:.8rem;flex:none}
+  @keyframes lcPulse{0%{box-shadow:0 0 0 0 rgba(139,92,246,.55)}70%{box-shadow:0 0 0 9px rgba(139,92,246,0)}100%{box-shadow:0 0 0 0 rgba(139,92,246,0)}}
+  .btn.pulse{animation:lcPulse 1.5s infinite;border-color:var(--accent)}
+  .btn.pulse:not(.btn-primary){color:var(--accent)}
+  .btn.btn-primary,.btn.btn-primary:hover,.btn.btn-primary.pulse{color:#fff}
+  .btn.btn-primary:disabled{color:#fff}
+  details.adv{margin:0;border:none;background:transparent;padding:0}
+  details.adv summary{font-size:.76rem;color:var(--muted);font-weight:550;cursor:pointer;padding:.15rem 0}
+  details.adv .gen-opts{margin-top:.45rem}
+  .match-row .btn{padding:.35rem .7rem;font-size:.78rem}
+  .share{display:none;margin-top:.7rem;border:1px solid var(--border);border-radius:.55rem;background:var(--panel2);padding:.75rem .85rem}
+  .share.has{display:block}
+  .share-step{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;padding:.35rem 0;font-size:.84rem}
+  .share-step b{display:inline-flex;width:1.25rem;height:1.25rem;border-radius:50%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:.72rem;align-items:center;justify-content:center;flex:none}
+  .share-words{font-family:var(--font-mono);font-size:.95rem;background:var(--bg);border:1px solid var(--border);border-radius:.45rem;padding:.25rem .55rem}
+  .share-words.purple{color:var(--accent);border-color:var(--accent);font-weight:700}
+  .share-step .btn{padding:.35rem .7rem;font-size:.78rem}
+  .share-note{margin-top:.45rem;font-size:.78rem;color:var(--warn)}
+  .keyring{margin-top:.9rem}
+  .keyring-head{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .keyring-head .btn{padding:.35rem .7rem;font-size:.78rem}
+  .kr-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.55rem}
+  .kr-chip{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-mono);font-size:.8rem;padding:.25rem .5rem;background:var(--panel2);border:1px solid var(--border);border-radius:.5rem;color:var(--muted)}
+  .kr-chip b{color:var(--accent);font-weight:700}
+  .kr-chip .x{cursor:pointer;color:var(--muted);font-weight:700}
+  .kr-chip .x:hover{color:var(--danger)}
+  .kr-note{font-size:.76rem;color:var(--muted);margin-top:.4rem}
+  .chips{display:none}
+  /* Mobile view. Desktop stays exactly as it is; this kicks in on small screens. */
+  @media (max-width: 640px){
+    body{padding:1rem .75rem}
+    .card{padding:1.1rem}
+    h1{font-size:1.25rem}
+    .row{flex-wrap:wrap}
+    .row .grow{flex:1 1 100%}
+    .row .btn{flex:1 1 auto;min-height:44px}
+    .mini-select{min-height:44px}
+    .seg{width:100%;justify-content:stretch}
+    .seg button{flex:1;padding:.55rem .5rem}
+    .actions .btn{flex:1 1 auto;min-height:44px}
+    .chips.has{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}
+    .chip{font-family:var(--font-mono);font-size:.95rem;padding:.3rem .6rem;background:var(--panel2);border:1px solid var(--border);border-radius:.5rem;color:var(--text)}
+    .chip.first{color:var(--accent);border-color:var(--accent);font-weight:700}
+  }
+  .warn-banner{display:none;background:rgba(239,68,68,.1);border:1px solid var(--danger);color:#fecaca;padding:.75rem 1rem;border-radius:.55rem;font-size:.85rem;margin-bottom:1rem}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Linear Cipher <span>v6.00</span> <span class="badge">Argon2id / AES-256-GCM</span></h1>
+    <p class="subtitle">End-to-end encrypted messages, disguised as symbols. Share a passphrase out-of-band, then paste symbols anywhere.</p>
+    <button class="btn icon-btn theme-btn" id="themeBtn" title="Switch between light and dark">Light</button>
+  </header>
+
+  <div id="ctxWarn" class="warn-banner"></div>
+
+  <div class="card">
+    <div class="steps" id="stepsStrip">
+      <span class="step"><b>1</b> Type <span class="yw">your word</span></span>
+      <span class="step"><b>2</b> Press Generate</span>
+      <span class="step"><b>3</b> Share it over two channels</span>
+      <button class="steps-close" id="stepsClose" title="Hide these tips (they stay hidden next time)">&times;</button>
+    </div>
+    <div class="field">
+      <label>Shared passphrase</label>
+      <div class="row">
+        <div class="grow pass-wrap">
+          <div class="pass-mirror" id="passMirror" aria-hidden="true"></div>
+          <input type="text" id="pass" placeholder="Step 1: type your word here..." autocomplete="off" spellcheck="false">
+        </div>
+        <button class="btn icon-btn" id="togglePass" title="Show / hide">Hide</button>
+        <button class="btn" id="genKey" title="Keep your first word, fill the rest with random words" disabled>Generate</button>
+        <button class="btn icon-btn" id="copyPass" title="Copy the words for the main app" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:.35rem"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span id="copyPassText">Copy</span></button>
+      </div>
+      <div class="chips" id="phraseChips" aria-hidden="true"></div>
+      <div class="share" id="sharePanel">
+        <div class="share-step"><b>1</b> First give the purple words through a personal channel (call, SMS, in person): <span class="share-words purple" id="shareHead"></span></div>
+        <div class="share-step"><b>2</b> Then send the rest in your normal app: <span class="share-words" id="shareTail"></span> <button class="btn" id="copyTail">Copy</button></div>
+        <div class="share-note">Never send both parts in the same app. The other person types the purple words first, then the rest.</div>
+      </div>
+      <details class="adv">
+        <summary>Word options (the default is already strong)</summary>
+        <div class="gen-opts">
+          <select class="mini-select" id="wordStyle" title="Word style used by Generate">
+            <option value="easy" selected>Easy (short words)</option>
+            <option value="compact">Compact (fewer, trickier words)</option>
+          </select>
+          <select class="mini-select" id="wordCount" title="Total words, including your first word">
+            <option value="6">6 words total</option>
+            <option value="7" selected>7 words total</option>
+            <option value="8">8 words total</option>
+            <option value="9">9 words total</option>
+          </select>
+        </div>
+      </details>
+      <div class="suggest" id="suggest">
+        <span id="suggestText"></span>
+        <button class="btn btn-primary" id="suggestGen">Generate the rest</button>
+      </div>
+      <p class="field-note">Type your first word and press Generate. The <strong>purple words</strong> are the private part, sent separately from the rest. Everyone in the conversation must use the exact same full passphrase.</p>
+      <div class="meter"><span id="meterBar"></span></div>
+      <div class="meter-label" id="meterLabel">Passphrase strength shows here.</div>
+    </div>
+
+    <div class="match-row">
+      <span class="match-label">Match code</span>
+      <span class="match-code" id="matchCode">-</span>
+      <button class="btn" id="copyCode" style="display:none">Copy code</button>
+      <span class="match-hint" id="matchHint">Appears once you have a passphrase. You will compare it with the other person.</span>
+    </div>
+
+    <div class="keyring">
+      <div class="keyring-head">
+        <label style="margin:0">Session keyring <span class="opt">(decrypt with several conversations)</span></label>
+        <button class="btn" id="krAdd">Remember this key</button>
+      </div>
+      <div class="kr-chips" id="krChips"></div>
+      <p class="kr-note">When a message does not match your current passphrase, these saved keys are tried automatically, so senders never need to label messages. Kept in memory only and wiped when you close the page or press Panic.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:1.1rem;align-items:center;flex-wrap:wrap">
+      <div class="seg" id="modeSeg" style="margin-bottom:0">
+        <button data-mode="auto" class="active">Auto</button>
+        <button data-mode="encrypt">Encrypt</button>
+        <button data-mode="decrypt">Decrypt</button>
+      </div>
+      <select class="mini-select" id="outStyle" title="How the encrypted result looks" style="flex:1;min-width:190px">
+        <option value="symbols" selected>Symbols output (max stealth)</option>
+        <option value="text">Letters output (for e-mail and SMS)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label id="inLabel">Message</label>
+      <textarea id="input" placeholder="Type a message to encrypt, or paste an encrypted message to decrypt..." autofocus></textarea>
+    </div>
+
+    <label id="outLabel">Result</label>
+    <div id="output" class="output-box" data-placeholder="Result will appear here..."></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="copyBtn"><span id="copyText">Copy result</span></button>
+      <button class="btn" id="clearBtn">Clear</button>
+      <button class="btn btn-ghost" id="panicBtn" title="Wipe everything from memory">Panic wipe</button>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn" id="repairBtn" style="display:none;margin-top:.5rem">Try to repair this message</button>
+
+    <details>
+      <summary>How it works &amp; safety notes</summary>
+      <p>Your passphrase is stretched into a 256-bit key with <code>Argon2id</code> (64&nbsp;MiB, 3 passes), a memory-hard function that makes offline guessing extremely slow. The salt comes from your first word, so precomputed guessing tables cannot be shared across conversations. Each message is encrypted with <code>AES-256-GCM</code> using a fresh random nonce, then the encrypted bytes are rendered into a 256-symbol alphabet, or into ordinary letters starting with <code>LC5.</code> when the Letters output is chosen (useful for e-mail and SMS, which sometimes damage unusual symbols). Decryption reverses this and verifies the message was not altered.</p>
+      <p><strong>Good to know:</strong> anyone with the passphrase can read and forge messages, so share it privately and pick a strong one (use Generate). This protects messages in transit and at rest; it cannot protect a device that is already compromised. Runs fully offline. No data ever leaves this page.</p>
+    </details>
+  </div>
+</div>
+
+<script>
+/*!
+ * hash-wasm (https://www.npmjs.com/package/hash-wasm)
+ * (c) Dani Biro
+ * @license MIT
+ */
+
+!function(A,I){"object"==typeof exports&&"undefined"!=typeof module?I(exports):"function"==typeof define&&define.amd?define(["exports"],I):I((A="undefined"!=typeof globalThis?globalThis:A||self).hashwasm=A.hashwasm||{})}(this,(function(A){"use strict";function I(A,I,i,C){return new(i||(i=Promise))((function(g,Q){function B(A){try{e(C.next(A))}catch(A){Q(A)}}function h(A){try{e(C.throw(A))}catch(A){Q(A)}}function e(A){var I;A.done?g(A.value):(I=A.value,I instanceof i?I:new i((function(A){A(I)}))).then(B,h)}e((C=C.apply(A,I||[])).next())}))}"function"==typeof SuppressedError&&SuppressedError;var i,C={name:"argon2",data:"AGFzbQEAAAABKQVgAX8Bf2AAAX9gEH9/f39/f39/f39/f39/f38AYAR/f39/AGACf38AAwYFAAECAwQFBgEBAoCAAgYIAX8BQZCoBAsHQQQGbWVtb3J5AgASSGFzaF9TZXRNZW1vcnlTaXplAAAOSGFzaF9HZXRCdWZmZXIAAQ5IYXNoX0NhbGN1bGF0ZQAECvEyBVgBAn9BACEBAkAgAEEAKAKICCICRg0AAkAgACACayIAQRB2IABBgIB8cSAASWoiAEAAQX9HDQBB/wHADwtBACEBQQBBACkDiAggAEEQdK18NwOICAsgAcALcAECfwJAQQAoAoAIIgANAEEAPwBBEHQiADYCgAhBACgCiAgiAUGAgCBGDQACQEGAgCAgAWsiAEEQdiAAQYCAfHEgAElqIgBAAEF/Rw0AQQAPC0EAQQApA4gIIABBEHStfDcDiAhBACgCgAghAAsgAAvcDgECfiAAIAQpAwAiECAAKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAMIBAgDCkDAIVCIIkiEDcDACAIIBAgCCkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgBCAQIAQpAwCFQiiJIhA3AwAgACAQIAApAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIAwgECAMKQMAhUIwiSIQNwMAIAggECAIKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAEIBAgBCkDAIVCAYk3AwAgASAFKQMAIhAgASkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgDSAQIA0pAwCFQiCJIhA3AwAgCSAQIAkpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAUgECAFKQMAhUIoiSIQNwMAIAEgECABKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACANIBAgDSkDAIVCMIkiEDcDACAJIBAgCSkDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgBSAQIAUpAwCFQgGJNwMAIAIgBikDACIQIAIpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIA4gECAOKQMAhUIgiSIQNwMAIAogECAKKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAGIBAgBikDAIVCKIkiEDcDACACIBAgAikDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgDiAQIA4pAwCFQjCJIhA3AwAgCiAQIAopAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIAYgECAGKQMAhUIBiTcDACADIAcpAwAiECADKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAPIBAgDykDAIVCIIkiEDcDACALIBAgCykDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgByAQIAcpAwCFQiiJIhA3AwAgAyAQIAMpAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIA8gECAPKQMAhUIwiSIQNwMAIAsgECALKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAHIBAgBykDAIVCAYk3AwAgACAFKQMAIhAgACkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgDyAQIA8pAwCFQiCJIhA3AwAgCiAQIAopAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAUgECAFKQMAhUIoiSIQNwMAIAAgECAAKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAPIBAgDykDAIVCMIkiEDcDACAKIBAgCikDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgBSAQIAUpAwCFQgGJNwMAIAEgBikDACIQIAEpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAwgECAMKQMAhUIgiSIQNwMAIAsgECALKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAGIBAgBikDAIVCKIkiEDcDACABIBAgASkDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgDCAQIAwpAwCFQjCJIhA3AwAgCyAQIAspAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIAYgECAGKQMAhUIBiTcDACACIAcpAwAiECACKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACANIBAgDSkDAIVCIIkiEDcDACAIIBAgCCkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgByAQIAcpAwCFQiiJIhA3AwAgAiAQIAIpAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIA0gECANKQMAhUIwiSIQNwMAIAggECAIKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAHIBAgBykDAIVCAYk3AwAgAyAEKQMAIhAgAykDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgDiAQIA4pAwCFQiCJIhA3AwAgCSAQIAkpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAQgECAEKQMAhUIoiSIQNwMAIAMgECADKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAOIBAgDikDAIVCMIkiEDcDACAJIBAgCSkDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgBCAQIAQpAwCFQgGJNwMAC98aAQN/QQAhBEEAIAIpAwAgASkDAIU3A5AIQQAgAikDCCABKQMIhTcDmAhBACACKQMQIAEpAxCFNwOgCEEAIAIpAxggASkDGIU3A6gIQQAgAikDICABKQMghTcDsAhBACACKQMoIAEpAyiFNwO4CEEAIAIpAzAgASkDMIU3A8AIQQAgAikDOCABKQM4hTcDyAhBACACKQNAIAEpA0CFNwPQCEEAIAIpA0ggASkDSIU3A9gIQQAgAikDUCABKQNQhTcD4AhBACACKQNYIAEpA1iFNwPoCEEAIAIpA2AgASkDYIU3A/AIQQAgAikDaCABKQNohTcD+AhBACACKQNwIAEpA3CFNwOACUEAIAIpA3ggASkDeIU3A4gJQQAgAikDgAEgASkDgAGFNwOQCUEAIAIpA4gBIAEpA4gBhTcDmAlBACACKQOQASABKQOQAYU3A6AJQQAgAikDmAEgASkDmAGFNwOoCUEAIAIpA6ABIAEpA6ABhTcDsAlBACACKQOoASABKQOoAYU3A7gJQQAgAikDsAEgASkDsAGFNwPACUEAIAIpA7gBIAEpA7gBhTcDyAlBACACKQPAASABKQPAAYU3A9AJQQAgAikDyAEgASkDyAGFNwPYCUEAIAIpA9ABIAEpA9ABhTcD4AlBACACKQPYASABKQPYAYU3A+gJQQAgAikD4AEgASkD4AGFNwPwCUEAIAIpA+gBIAEpA+gBhTcD+AlBACACKQPwASABKQPwAYU3A4AKQQAgAikD+AEgASkD+AGFNwOICkEAIAIpA4ACIAEpA4AChTcDkApBACACKQOIAiABKQOIAoU3A5gKQQAgAikDkAIgASkDkAKFNwOgCkEAIAIpA5gCIAEpA5gChTcDqApBACACKQOgAiABKQOgAoU3A7AKQQAgAikDqAIgASkDqAKFNwO4CkEAIAIpA7ACIAEpA7AChTcDwApBACACKQO4AiABKQO4AoU3A8gKQQAgAikDwAIgASkDwAKFNwPQCkEAIAIpA8gCIAEpA8gChTcD2ApBACACKQPQAiABKQPQAoU3A+AKQQAgAikD2AIgASkD2AKFNwPoCkEAIAIpA+ACIAEpA+AChTcD8ApBACACKQPoAiABKQPoAoU3A/gKQQAgAikD8AIgASkD8AKFNwOAC0EAIAIpA/gCIAEpA/gChTcDiAtBACACKQOAAyABKQOAA4U3A5ALQQAgAikDiAMgASkDiAOFNwOYC0EAIAIpA5ADIAEpA5ADhTcDoAtBACACKQOYAyABKQOYA4U3A6gLQQAgAikDoAMgASkDoAOFNwOwC0EAIAIpA6gDIAEpA6gDhTcDuAtBACACKQOwAyABKQOwA4U3A8ALQQAgAikDuAMgASkDuAOFNwPIC0EAIAIpA8ADIAEpA8ADhTcD0AtBACACKQPIAyABKQPIA4U3A9gLQQAgAikD0AMgASkD0AOFNwPgC0EAIAIpA9gDIAEpA9gDhTcD6AtBACACKQPgAyABKQPgA4U3A/ALQQAgAikD6AMgASkD6AOFNwP4C0EAIAIpA/ADIAEpA/ADhTcDgAxBACACKQP4AyABKQP4A4U3A4gMQQAgAikDgAQgASkDgASFNwOQDEEAIAIpA4gEIAEpA4gEhTcDmAxBACACKQOQBCABKQOQBIU3A6AMQQAgAikDmAQgASkDmASFNwOoDEEAIAIpA6AEIAEpA6AEhTcDsAxBACACKQOoBCABKQOoBIU3A7gMQQAgAikDsAQgASkDsASFNwPADEEAIAIpA7gEIAEpA7gEhTcDyAxBACACKQPABCABKQPABIU3A9AMQQAgAikDyAQgASkDyASFNwPYDEEAIAIpA9AEIAEpA9AEhTcD4AxBACACKQPYBCABKQPYBIU3A+gMQQAgAikD4AQgASkD4ASFNwPwDEEAIAIpA+gEIAEpA+gEhTcD+AxBACACKQPwBCABKQPwBIU3A4ANQQAgAikD+AQgASkD+ASFNwOIDUEAIAIpA4AFIAEpA4AFhTcDkA1BACACKQOIBSABKQOIBYU3A5gNQQAgAikDkAUgASkDkAWFNwOgDUEAIAIpA5gFIAEpA5gFhTcDqA1BACACKQOgBSABKQOgBYU3A7ANQQAgAikDqAUgASkDqAWFNwO4DUEAIAIpA7AFIAEpA7AFhTcDwA1BACACKQO4BSABKQO4BYU3A8gNQQAgAikDwAUgASkDwAWFNwPQDUEAIAIpA8gFIAEpA8gFhTcD2A1BACACKQPQBSABKQPQBYU3A+ANQQAgAikD2AUgASkD2AWFNwPoDUEAIAIpA+AFIAEpA+AFhTcD8A1BACACKQPoBSABKQPoBYU3A/gNQQAgAikD8AUgASkD8AWFNwOADkEAIAIpA/gFIAEpA/gFhTcDiA5BACACKQOABiABKQOABoU3A5AOQQAgAikDiAYgASkDiAaFNwOYDkEAIAIpA5AGIAEpA5AGhTcDoA5BACACKQOYBiABKQOYBoU3A6gOQQAgAikDoAYgASkDoAaFNwOwDkEAIAIpA6gGIAEpA6gGhTcDuA5BACACKQOwBiABKQOwBoU3A8AOQQAgAikDuAYgASkDuAaFNwPIDkEAIAIpA8AGIAEpA8AGhTcD0A5BACACKQPIBiABKQPIBoU3A9gOQQAgAikD0AYgASkD0AaFNwPgDkEAIAIpA9gGIAEpA9gGhTcD6A5BACACKQPgBiABKQPgBoU3A/AOQQAgAikD6AYgASkD6AaFNwP4DkEAIAIpA/AGIAEpA/AGhTcDgA9BACACKQP4BiABKQP4BoU3A4gPQQAgAikDgAcgASkDgAeFNwOQD0EAIAIpA4gHIAEpA4gHhTcDmA9BACACKQOQByABKQOQB4U3A6APQQAgAikDmAcgASkDmAeFNwOoD0EAIAIpA6AHIAEpA6AHhTcDsA9BACACKQOoByABKQOoB4U3A7gPQQAgAikDsAcgASkDsAeFNwPAD0EAIAIpA7gHIAEpA7gHhTcDyA9BACACKQPAByABKQPAB4U3A9APQQAgAikDyAcgASkDyAeFNwPYD0EAIAIpA9AHIAEpA9AHhTcD4A9BACACKQPYByABKQPYB4U3A+gPQQAgAikD4AcgASkD4AeFNwPwD0EAIAIpA+gHIAEpA+gHhTcD+A9BACACKQPwByABKQPwB4U3A4AQQQAgAikD+AcgASkD+AeFNwOIEEGQCEGYCEGgCEGoCEGwCEG4CEHACEHICEHQCEHYCEHgCEHoCEHwCEH4CEGACUGICRACQZAJQZgJQaAJQagJQbAJQbgJQcAJQcgJQdAJQdgJQeAJQegJQfAJQfgJQYAKQYgKEAJBkApBmApBoApBqApBsApBuApBwApByApB0ApB2ApB4ApB6ApB8ApB+ApBgAtBiAsQAkGQC0GYC0GgC0GoC0GwC0G4C0HAC0HIC0HQC0HYC0HgC0HoC0HwC0H4C0GADEGIDBACQZAMQZgMQaAMQagMQbAMQbgMQcAMQcgMQdAMQdgMQeAMQegMQfAMQfgMQYANQYgNEAJBkA1BmA1BoA1BqA1BsA1BuA1BwA1ByA1B0A1B2A1B4A1B6A1B8A1B+A1BgA5BiA4QAkGQDkGYDkGgDkGoDkGwDkG4DkHADkHIDkHQDkHYDkHgDkHoDkHwDkH4DkGAD0GIDxACQZAPQZgPQaAPQagPQbAPQbgPQcAPQcgPQdAPQdgPQeAPQegPQfAPQfgPQYAQQYgQEAJBkAhBmAhBkAlBmAlBkApBmApBkAtBmAtBkAxBmAxBkA1BmA1BkA5BmA5BkA9BmA8QAkGgCEGoCEGgCUGoCUGgCkGoCkGgC0GoC0GgDEGoDEGgDUGoDUGgDkGoDkGgD0GoDxACQbAIQbgIQbAJQbgJQbAKQbgKQbALQbgLQbAMQbgMQbANQbgNQbAOQbgOQbAPQbgPEAJBwAhByAhBwAlByAlBwApByApBwAtByAtBwAxByAxBwA1ByA1BwA5ByA5BwA9ByA8QAkHQCEHYCEHQCUHYCUHQCkHYCkHQC0HYC0HQDEHYDEHQDUHYDUHQDkHYDkHQD0HYDxACQeAIQegIQeAJQegJQeAKQegKQeALQegLQeAMQegMQeANQegNQeAOQegOQeAPQegPEAJB8AhB+AhB8AlB+AlB8ApB+ApB8AtB+AtB8AxB+AxB8A1B+A1B8A5B+A5B8A9B+A8QAkGACUGICUGACkGICkGAC0GIC0GADEGIDEGADUGIDUGADkGIDkGAD0GID0GAEEGIEBACAkACQCADRQ0AA0AgACAEaiIDIAIgBGoiBSkDACABIARqIgYpAwCFIARBkAhqKQMAhSADKQMAhTcDACADQQhqIgMgBUEIaikDACAGQQhqKQMAhSAEQZgIaikDAIUgAykDAIU3AwAgBEEQaiIEQYAIRw0ADAILC0EAIQQDQCAAIARqIgMgAiAEaiIFKQMAIAEgBGoiBikDAIUgBEGQCGopAwCFNwMAIANBCGogBUEIaikDACAGQQhqKQMAhSAEQZgIaikDAIU3AwAgBEEQaiIEQYAIRw0ACwsL5QcMBX8BfgR/An4BfwF+AX8Bfgd/AX4DfwF+AkBBACgCgAgiAiABQQp0aiIDKAIIIAFHDQAgAygCDCEEIAMoAgAhBUEAIAMoAhQiBq03A7gQQQAgBK0iBzcDsBBBACAFIAEgBUECdG4iCGwiCUECdK03A6gQAkACQAJAAkAgBEUNAEF/IQogBUUNASAIQQNsIQsgCEECdCIErSEMIAWtIQ0gBkF/akECSSEOQgAhDwNAQQAgDzcDkBAgD6chEEIAIRFBACEBA0BBACARNwOgECAPIBGEUCIDIA5xIRIgBkEBRiAPUCITIAZBAkYgEUICVHFxciEUQX8gAUEBakEDcSAIbEF/aiATGyEVIAEgEHIhFiABIAhsIRcgA0EBdCEYQgAhGQNAQQBCADcDwBBBACAZNwOYECAYIQECQCASRQ0AQQBCATcDwBBBkBhBkBBBkCBBABADQZAYQZAYQZAgQQAQA0ECIQELAkAgASAITw0AIAQgGaciGmwgF2ogAWohAwNAIANBACAEIAEbQQAgEVAiGxtqQX9qIRwCQAJAIBQNAEEAKAKACCICIBxBCnQiHGohCgwBCwJAIAFB/wBxIgINAEEAQQApA8AQQgF8NwPAEEGQGEGQEEGQIEEAEANBkBhBkBhBkCBBABADCyAcQQp0IRwgAkEDdEGQGGohCkEAKAKACCECCyACIANBCnRqIAIgHGogAiAKKQMAIh1CIIinIAVwIBogFhsiHCAEbCABIAFBACAZIBytUSIcGyIKIBsbIBdqIAogC2ogExsgAUUgHHJrIhsgFWqtIB1C/////w+DIh0gHX5CIIggG61+QiCIfSAMgqdqQQp0akEBEAMgA0EBaiEDIAggAUEBaiIBRw0ACwsgGUIBfCIZIA1SDQALIBFCAXwiEachASARQgRSDQALIA9CAXwiDyAHUg0AC0EAKAKACCECCyAJQQx0QYB4aiEXIAVBf2oiCkUNAgwBC0EAQgM3A6AQQQAgBEF/aq03A5AQQYB4IRcLIAIgF2ohGyAIQQx0IQhBACEcA0AgCCAcQQFqIhxsQYB4aiEEQQAhAQNAIBsgAWoiAyADKQMAIAIgBCABamopAwCFNwMAIANBCGoiAyADKQMAIAIgBCABQQhyamopAwCFNwMAIAFBCGohAyABQRBqIQEgA0H4B0kNAAsgHCAKRw0ACwsgAiAXaiEbQXghAQNAIAIgAWoiA0EIaiAbIAFqIgRBCGopAwA3AwAgA0EQaiAEQRBqKQMANwMAIANBGGogBEEYaikDADcDACADQSBqIARBIGopAwA3AwAgAUEgaiIBQfgHSQ0ACwsL",hash:"e4cdc523"};class g{constructor(){this.mutex=Promise.resolve()}lock(){let A=()=>{};return this.mutex=this.mutex.then((()=>new Promise(A))),new Promise((I=>{A=I}))}dispatch(A){return I(this,void 0,void 0,(function*(){const I=yield this.lock();try{return yield Promise.resolve(A())}finally{I()}}))}}const Q="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:"undefined"!=typeof window?window:global,B=null!==(i=Q.Buffer)&&void 0!==i?i:null,h=Q.TextEncoder?new Q.TextEncoder:null;function e(A,I){return(15&A)+(A>>6|A>>3&8)<<4|(15&I)+(I>>6|I>>3&8)}function w(A,I){const i=I.length>>1;for(let C=0;C<i;C++){const i=C<<1;A[C]=e(I.charCodeAt(i),I.charCodeAt(i+1))}}const t="a".charCodeAt(0)-10,o="0".charCodeAt(0);function E(A,I,i){let C=0;for(let g=0;g<i;g++){let i=I[g]>>>4;A[C++]=i>9?i+t:i+o,i=15&I[g],A[C++]=i>9?i+t:i+o}return String.fromCharCode.apply(null,A)}const n=null!==B?A=>{if("string"==typeof A){const I=B.from(A,"utf8");return new Uint8Array(I.buffer,I.byteOffset,I.length)}if(B.isBuffer(A))return new Uint8Array(A.buffer,A.byteOffset,A.length);if(ArrayBuffer.isView(A))return new Uint8Array(A.buffer,A.byteOffset,A.byteLength);throw new Error("Invalid data type!")}:A=>{if("string"==typeof A)return h.encode(A);if(ArrayBuffer.isView(A))return new Uint8Array(A.buffer,A.byteOffset,A.byteLength);throw new Error("Invalid data type!")},r="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",D=new Uint8Array(256);for(let A=0;A<r.length;A++)D[r.charCodeAt(A)]=A;function F(A,I=!0){const i=A.length,C=i%3,g=[],Q=i-C;for(let I=0;I<Q;I+=3){const i=(A[I]<<16&16711680)+(A[I+1]<<8&65280)+(255&A[I+2]),C=r.charAt(i>>18&63)+r.charAt(i>>12&63)+r.charAt(i>>6&63)+r.charAt(63&i);g.push(C)}if(1===C){const C=A[i-1],Q=r.charAt(C>>2),B=r.charAt(C<<4&63);g.push(`${Q}${B}`),I&&g.push("==")}else if(2===C){const C=(A[i-2]<<8)+A[i-1],Q=r.charAt(C>>10),B=r.charAt(C>>4&63),h=r.charAt(C<<2&63);g.push(`${Q}${B}${h}`),I&&g.push("=")}return g.join("")}function f(A){let I=Math.floor(.75*A.length);const i=A.length;return"="===A[i-1]&&(I-=1,"="===A[i-2]&&(I-=1)),I}function k(A){const I=f(A),i=A.length,C=new Uint8Array(I);let g=0;for(let I=0;I<i;I+=4){const i=D[A.charCodeAt(I)],Q=D[A.charCodeAt(I+1)],B=D[A.charCodeAt(I+2)],h=D[A.charCodeAt(I+3)];C[g]=i<<2|Q>>4,g+=1,C[g]=(15&Q)<<4|B>>2,g+=1,C[g]=(3&B)<<6|63&h,g+=1}return C}const a=16384,s=new g,S=new Map;function U(A,i){return I(this,void 0,void 0,(function*(){let C=null,g=null,Q=!1;if("undefined"==typeof WebAssembly)throw new Error("WebAssembly is not supported in this environment!");const B=()=>new DataView(C.exports.memory.buffer).getUint32(C.exports.STATE_SIZE,!0),h=s.dispatch((()=>I(this,void 0,void 0,(function*(){if(!S.has(A.name)){const I=k(A.data),i=WebAssembly.compile(I);S.set(A.name,i)}const I=yield S.get(A.name);C=yield WebAssembly.instantiate(I,{})})))),t=(A=null)=>{Q=!0,C.exports.Hash_Init(A)},o=A=>{if(!Q)throw new Error("update() called before init()");(A=>{let I=0;for(;I<A.length;){const i=A.subarray(I,I+a);I+=i.length,g.set(i),C.exports.Hash_Update(i.length)}})(n(A))},r=new Uint8Array(2*i),D=(A,I=null)=>{if(!Q)throw new Error("digest() called before init()");return Q=!1,C.exports.Hash_Final(I),"binary"===A?g.slice(0,i):E(r,g,i)},F=A=>"string"==typeof A?A.length<4096:A.byteLength<a;let f=F;switch(A.name){case"argon2":case"scrypt":f=()=>!0;break;case"blake2b":case"blake2s":f=(A,I)=>I<=512&&F(A);break;case"blake3":f=(A,I)=>0===I&&F(A);break;case"xxhash64":case"xxhash3":case"xxhash128":case"crc64":f=()=>!1}return yield(()=>I(this,void 0,void 0,(function*(){C||(yield h);const A=C.exports.Hash_GetBuffer(),I=C.exports.memory.buffer;g=new Uint8Array(I,A,a)})))(),{getMemory:()=>g,writeMemory:(A,I=0)=>{g.set(A,I)},getExports:()=>C.exports,setMemorySize:A=>{C.exports.Hash_SetMemorySize(A);const I=C.exports.Hash_GetBuffer(),i=C.exports.memory.buffer;g=new Uint8Array(i,I,A)},init:t,update:o,digest:D,save:()=>{if(!Q)throw new Error("save() can only be called after init() and before digest()");const I=C.exports.Hash_GetState(),i=B(),g=C.exports.memory.buffer,h=new Uint8Array(g,I,i),e=new Uint8Array(4+i);return w(e,A.hash),e.set(h,4),e},load:I=>{if(!(I instanceof Uint8Array))throw new Error("load() expects an Uint8Array generated by save()");const i=C.exports.Hash_GetState(),g=B(),h=4+g,w=C.exports.memory.buffer;if(I.length!==h)throw new Error(`Bad state length (expected ${h} bytes, got ${I.length})`);if(!function(A,I){if(A.length!==2*I.length)return!1;for(let i=0;i<I.length;i++){const C=i<<1;if(I[i]!==e(A.charCodeAt(C),A.charCodeAt(C+1)))return!1}return!0}(A.hash,I.subarray(0,4)))throw new Error("This state was written by an incompatible hash implementation");const t=I.subarray(4);new Uint8Array(w,i,g).set(t),Q=!0},calculate:(A,I=null,Q=null)=>{if(!f(A,I))return t(I),o(A),D("hex",Q);const B=n(A);return g.set(B),C.exports.Hash_Calculate(B.length,I,Q),E(r,g,i)},hashLength:i}}))}var c={name:"blake2b",data:"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",hash:"c6f286e6"};function G(A){return!Number.isInteger(A)||A<8||A>512||A%8!=0?new Error("Invalid variant! Valid values: 8, 16, ..., 512"):null}function p(A=512,I=null){if(G(A))return Promise.reject(G(A));let i=null,C=A;if(null!==I){if(i=n(I),i.length>64)return Promise.reject(new Error("Max key length is 64 bytes"));g=A,Q=i.length,C=g|Q<<16}var g,Q;const B=A/8;return U(c,B).then((A=>{C>512&&A.writeMemory(i),A.init(C);const I={init:C>512?()=>(A.writeMemory(i),A.init(C),I):()=>(A.init(C),I),update:i=>(A.update(i),I),digest:I=>A.digest(I),save:()=>A.save(),load:i=>(A.load(i),I),blockSize:128,digestSize:B};return I}))}new g;const y=new DataView(new ArrayBuffer(4));function J(A){return y.setInt32(0,A,!0),new Uint8Array(y.buffer)}function l(A,i,C){return I(this,void 0,void 0,(function*(){if(C<=64){const A=yield p(8*C);return A.update(J(C)),A.update(i),A.digest("binary")}const I=Math.ceil(C/32)-2,g=new Uint8Array(C);A.init(),A.update(J(C)),A.update(i);let Q=A.digest("binary");g.set(Q.subarray(0,32),0);for(let i=1;i<I;i++)A.init(),A.update(Q),Q=A.digest("binary"),g.set(Q.subarray(0,32),32*i);const B=C-32*I;let h;return 64===B?(h=A,h.init()):h=yield p(8*B),h.update(Q),Q=h.digest("binary"),g.set(Q.subarray(0,B),32*I),g}))}function u(A){return I(this,void 0,void 0,(function*(){var I;const{parallelism:i,iterations:g,hashLength:Q}=A,B=n(A.password),h=n(A.salt),e=function(A){switch(A){case"d":return 0;case"i":return 1;default:return 2}}(A.hashType),{memorySize:t}=A,o=n(null!==(I=A.secret)&&void 0!==I?I:""),[r,D]=yield Promise.all([U(C,1024),p(512)]);r.setMemorySize(1024*t+1024);const f=new Uint8Array(24),k=new DataView(f.buffer);k.setInt32(0,i,!0),k.setInt32(4,Q,!0),k.setInt32(8,t,!0),k.setInt32(12,g,!0),k.setInt32(16,19,!0),k.setInt32(20,e,!0),r.writeMemory(f,1024*t),D.init(),D.update(f),D.update(J(B.length)),D.update(B),D.update(J(h.length)),D.update(h),D.update(J(o.length)),D.update(o),D.update(J(0));const a=4*Math.floor(t/(4*i)),s=new Uint8Array(72),S=D.digest("binary");s.set(S);for(let A=0;A<i;A++){s.set(J(0),64),s.set(J(A),68);let I=A*a,i=yield l(D,s,1024);r.writeMemory(i,1024*I),I+=1,s.set(J(1),64),i=yield l(D,s,1024),r.writeMemory(i,1024*I)}const c=new Uint8Array(1024);w(c,r.calculate(new Uint8Array([]),t));const G=yield l(D,c,Q);if("hex"===A.outputType){return E(new Uint8Array(2*Q),G,Q)}return"encoded"===A.outputType?function(A,I,i){const C=[`m=${I.memorySize}`,`t=${I.iterations}`,`p=${I.parallelism}`].join(",");return`$argon2${I.hashType}$v=19${C}${F(A,!1)}${F(i,!1)}`}(h,A,G):G}))}const H=A=>{var I;if(!A||"object"!=typeof A)throw new Error("Invalid options parameter. It requires an object.");if(!A.password)throw new Error("Password must be specified");if(A.password=n(A.password),A.password.length<1)throw new Error("Password must be specified");if(!A.salt)throw new Error("Salt must be specified");if(A.salt=n(A.salt),A.salt.length<8)throw new Error("Salt should be at least 8 bytes long");if(A.secret=n(null!==(I=A.secret)&&void 0!==I?I:""),!Number.isInteger(A.iterations)||A.iterations<1)throw new Error("Iterations should be a positive number");if(!Number.isInteger(A.parallelism)||A.parallelism<1)throw new Error("Parallelism should be a positive number");if(!Number.isInteger(A.hashLength)||A.hashLength<4)throw new Error("Hash length should be at least 4 bytes.");if(!Number.isInteger(A.memorySize))throw new Error("Memory size should be specified.");if(A.memorySize<8*A.parallelism)throw new Error("Memory size should be at least 8 * parallelism.");if(void 0===A.outputType&&(A.outputType="hex"),!["hex","binary","encoded"].includes(A.outputType))throw new Error(`Insupported output type ${A.outputType}. Valid values: ['hex', 'binary', 'encoded']`)};A.argon2Verify=function(A){return I(this,void 0,void 0,(function*(){(A=>{if(!A||"object"!=typeof A)throw new Error("Invalid options parameter. It requires an object.");if(void 0===A.hash||"string"!=typeof A.hash)throw new Error("Hash should be specified")})(A);const I=((A,I,i)=>{const C=I.match(/^\$argon2(id|i|d)\$v=([0-9]+)\$((?:[mtp]=[0-9]+,){2}[mtp]=[0-9]+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/);if(!C)throw new Error("Invalid hash");const[,g,Q,B,h,e]=C;if("19"!==Q)throw new Error(`Unsupported version: ${Q}`);const w={},t={m:"memorySize",p:"parallelism",t:"iterations"};for(const A of B.split(",")){const[I,i]=A.split("=");w[t[I]]=Number(i)}return Object.assign(Object.assign({},w),{password:A,secret:i,hashType:g,salt:k(h),hashLength:f(e),outputType:"encoded"})})(A.password,A.hash,A.secret);H(I);const i=A.hash.lastIndexOf("$")+1;return(yield u(I)).substring(i)===A.hash.substring(i)}))},A.argon2d=function(A){return I(this,void 0,void 0,(function*(){return H(A),u(Object.assign(Object.assign({},A),{hashType:"d"}))}))},A.argon2i=function(A){return I(this,void 0,void 0,(function*(){return H(A),u(Object.assign(Object.assign({},A),{hashType:"i"}))}))},A.argon2id=function(A){return I(this,void 0,void 0,(function*(){return H(A),u(Object.assign(Object.assign({},A),{hashType:"id"}))}))}}));
+
+</script>
+<script>
+(function(g){
+var WORDS = "acid acorn acre acts afar affix aged agent agile aging agony ahead aide aids aim ajar alarm alias alibi alien alike alive aloe aloft aloha alone amend amino ample amuse angel anger angle ankle apple april apron aqua area arena argue arise armed armor army aroma array arson art ashen ashes atlas atom attic audio avert avoid awake award awoke axis bacon badge bagel baggy baked baker balmy banjo barge barn bash basil bask batch bath baton bats blade blank blast blaze bleak blend bless blimp blink bloat blob blog blot blunt blurt blush boast boat body boil bok bolt boned boney bonus bony book booth boots boss botch both boxer breed bribe brick bride brim bring brink brisk broad broil broke brook broom brush buck bud buggy bulge bulk bully bunch bunny bunt bush bust busy buzz cable cache cadet cage cake calm cameo canal candy cane canon cape card cargo carol carry carve case cash cause cedar chain chair chant chaos charm chase cheek cheer chef chess chest chew chief chili chill chip chomp chop chow chuck chump chunk churn chute cider cinch city civic civil clad claim clamp clap clash clasp class claw clay clean clear cleat cleft clerk click cling clink clip cloak clock clone cloth cloud clump coach coast coat cod coil coke cola cold colt coma come comic comma cone cope copy coral cork cost cot couch cough cover cozy craft cramp crane crank crate crave crawl crazy creme crepe crept crib cried crisp crook crop cross crowd crown crumb crush crust cub cult cupid cure curl curry curse curve curvy cushy cut cycle dab dad daily dairy daisy dance dandy darn dart dash data date dawn deaf deal dean debit debt debug decaf decal decay deck decor decoy deed delay denim dense dent depth derby desk dial diary dice dig dill dime dimly diner dingy disco dish disk ditch ditzy dizzy dock dodge doing doll dome donor donut dose dot dove down dowry doze drab drama drank draw dress dried drift drill drive drone droop drove drown drum dry duck duct dude dug duke duo dusk dust duty dwarf dwell eagle early earth easel east eaten eats ebay ebony ebook echo edge eel eject elbow elder elf elk elm elope elude elves email emit empty emu enter entry envoy equal erase error erupt essay etch evade even evict evil evoke exact exit fable faced fact fade fall false fancy fang fax feast feed femur fence fend ferry fetal fetch fever fiber fifth fifty film filth final finch fit five flag flaky flame flap flask fled flick fling flint flip flirt float flock flop floss flyer foam foe fog foil folic folk food fool found fox foyer frail frame fray fresh fried frill frisk from front frost froth frown froze fruit gag gains gala game gap gas gave gear gecko geek gem genre gift gig gills given giver glad glass glide gloss glove glow glue goal going golf gong good gooey goofy gore gown grab grain grant grape graph grasp grass grave gravy gray green greet grew grid grief grill grip grit groom grope growl grub grunt guide gulf gulp gummy guru gush gut guy habit half halo halt happy harm hash hasty hatch hate haven hazel hazy heap heat heave hedge hefty help herbs hers hub hug hula hull human humid hump hung hunk hunt hurry hurt hush hut ice icing icon icy igloo image ion iron islam issue item ivory ivy jab jam jaws jazz jeep jelly jet jiffy job jog jolly jolt jot joy judge juice juicy july jumbo jump junky juror jury keep keg kept kick kilt king kite kitty kiwi knee knelt koala kung ladle lady lair lake lance land lapel large lash lasso last latch late lazy left legal lemon lend lens lent level lever lid life lift lilac lily limb limes line lint lion lip list lived liver lunar lunch lung lurch lure lurk lying lyric mace maker malt mama mango manor many map march mardi marry mash match mate math moan mocha moist mold mom moody mop morse most motor motto mount mouse mousy mouth move movie mower mud mug mulch mule mull mumbo mummy mural muse music musky mute nacho nag nail name nanny nap navy near neat neon nerd nest net next niece ninth nutty oak oasis oat ocean oil old olive omen onion only ooze opal open opera opt otter ouch ounce outer oval oven owl ozone pace pagan pager palm panda panic pants panty paper park party pasta patch path patio payer pecan penny pep perch perky perm pest petal petri petty photo plank plant plaza plead plot plow pluck plug plus poach pod poem poet pogo point poise poker polar polio polka polo pond pony poppy pork poser pouch pound pout power prank press print prior prism prize probe prong proof props prude prune pry pug pull pulp pulse puma punch punk pupil puppy purr purse push putt quack quake query quiet quill quilt quit quota quote rabid race rack radar radio raft rage raid rail rake rally ramp ranch range rank rant rash raven reach react ream rebel recap relax relay relic remix repay repel reply rerun reset rhyme rice rich ride rigid rigor rinse riot ripen rise risk ritzy rival river roast robe robin rock rogue roman romp rope rover royal ruby rug ruin rule runny rush rust rut sadly sage said saint salad salon salsa salt same sandy santa satin sauna saved savor sax say scale scam scan scare scarf scary scoff scold scoop scoot scope score scorn scout scowl scrap scrub scuba scuff sect sedan self send sepia serve set seven shack shade shady shaft shaky sham shape share sharp shed sheep sheet shelf shell shine shiny ship shirt shock shop shore shout shove shown showy shred shrug shun shush shut shy sift silk silly silo sip siren sixth size skate skew skid skier skies skip skirt skit sky slab slack slain slam slang slash slate slaw sled sleek sleep sleet slept slice slick slimy sling slip slit slob slot slug slum slurp slush small smash smell smile smirk smog snack snap snare snarl sneak sneer sniff snore snort snout snowy snub snuff speak speed spend spent spew spied spill spiny spoil spoke spoof spool spoon sport spot spout spray spree spur squad squat squid stack staff stage stain stall stamp stand stank stark start stash state stays steam steep stem step stew stick sting stir stock stole stomp stony stood stool stoop stop storm stout stove straw stray strut stuck stud stuff stump stung stunt suds sugar sulk surf sushi swab swan swarm sway swear sweat sweep swell swept swim swing swipe swirl swoop swore syrup tacky taco tag take tall talon tamer tank taper taps tarot tart task taste tasty taunt thank thaw theft theme thigh thing think thong thorn those throb thud thumb thump thus tiara tidal tidy tiger tile tilt tint tiny trace track trade train trait trap trash tray treat tree trek trend trial tribe trick trio trout truce truck trump trunk try tug tulip tummy turf tusk tutor tutu tux tweak tweet twice twine twins twirl twist uncle uncut undo unify union unit untie upon upper urban used user usher utter value vapor vegan venue verse vest veto vice video view viral virus visa visor vixen vocal voice void volt voter vowel wad wafer wager wages wagon wake walk wand wasp watch water wavy wheat whiff whole whoop wick widen widow width wife wifi wilt wimp wind wing wink wipe wired wiry wise wish wispy wok wolf womb wool woozy word work worry wound woven wrath wreck wrist xerox yahoo yam yard year yeast yelp yield yodel yoga yummy zebra zero zesty zippy zone zoom".split(" ");
+  if (typeof module !== "undefined" && module.exports) module.exports = WORDS;
+  else g.LC_WORDS = WORDS;
+})(typeof self !== "undefined" ? self : this);
+
+</script>
+<script>
+(function(g){
+var WORDS = "abacus abdomen abdominal abide abiding ability ablaze able abnormal abrasion abrasive abreast abridge abroad abruptly absence absentee absently absinthe absolute absolve abstain abstract absurd accent acclaim acclimate accompany account accuracy accurate accustom acetone achiness aching acid acorn acquaint acquire acre acrobat acronym acting action activate activator active activism activist activity actress acts acutely acuteness aeration aerobics aerosol aerospace afar affair affected affecting affection affidavit affiliate affirm affix afflicted affluent afford affront aflame afloat aflutter afoot afraid afterglow afterlife aftermath aftermost afternoon aged ageless agency agenda agent aggregate aghast agile agility aging agnostic agonize agonizing agony agreeable agreeably agreed agreeing agreement aground ahead ahoy aide aids aim ajar alabaster alarm albatross album alfalfa algebra algorithm alias alibi alienable alienate aliens alike alive alkaline alkalize almanac almighty almost aloe aloft aloha alone alongside aloof alphabet alright although altitude alto aluminum alumni always amaretto amaze amazingly amber ambiance ambiguity ambiguous ambition ambitious ambulance ambush amendable amendment amends amenity amiable amicably amid amigo amino amiss ammonia ammonium amnesty amniotic among amount amperage ample amplifier amplify amply amuck amulet amusable amused amusement amuser amusing anaconda anaerobic anagram anatomist anatomy anchor anchovy ancient android anemia anemic aneurism anew angelfish angelic anger angled angler angles angling angrily angriness anguished angular animal animate animating animation animator anime animosity ankle annex annotate announcer annoying annually annuity anointer another answering antacid antarctic anteater antelope antennae anthem anthill anthology antibody antics antidote antihero antiquely antiques antiquity antirust antitoxic antitrust antiviral antivirus antler antonym antsy anvil anybody anyhow anymore anyone anyplace anything anytime anyway anywhere aorta apache apostle appealing appear appease appeasing appendage appendix appetite appetizer applaud applause apple appliance applicant applied apply appointee appraisal appraiser apprehend approach approval approve apricot april apron aptitude aptly aqua aqueduct arbitrary arbitrate ardently area arena arguable arguably argue arise armadillo armband armchair armed armful armhole arming armless armoire armored armory armrest army aroma arose around arousal arrange array arrest arrival arrive arrogance arrogant arson art ascend ascension ascent ascertain ashamed ashen ashes ashy aside askew asleep asparagus aspect aspirate aspire aspirin astonish astound astride astrology astronaut astronomy astute atlantic atlas atom atonable atop atrium atrocious atrophy attach attain attempt attendant attendee attention attentive attest attic attire attitude attractor attribute atypical auction audacious audacity audible audibly audience audio audition augmented august authentic author autism autistic autograph automaker automated automatic autopilot available avalanche avatar avenge avenging avenue average aversion avert aviation aviator avid avoid await awaken award aware awhile awkward awning awoke awry axis babble babbling babied baboon backache backboard backboned backdrop backed backer backfield backfire backhand backing backlands backlash backless backlight backlit backlog backpack backpedal backrest backroom backshift backside backslid backspace backspin backstab backstage backtalk backtrack backup backward backwash backwater backyard bacon bacteria bacterium badass badge badland badly badness baffle baffling bagel bagful baggage bagged baggie bagginess bagging baggy bagpipe baguette baked bakery bakeshop baking balance balancing balcony balmy balsamic bamboo banana banish banister banjo bankable bankbook banked banker banking banknote bankroll banner bannister banshee banter barbecue barbed barbell barber barcode barge bargraph barista baritone barley barmaid barman barn barometer barrack barracuda barrel barrette barricade barrier barstool bartender barterer bash basically basics basil basin basis basket batboy batch bath baton bats battalion battered battering battery batting battle bauble bazooka blabber bladder blade blah blame blaming blanching blandness blank blaspheme blasphemy blast blatancy blatantly blazer blazing bleach bleak bleep blemish blend bless blighted blimp bling blinked blinker blinking blinks blip blissful blitz blizzard bloated bloating blob blog bloomers blooming blooper blot blouse blubber bluff bluish blunderer blunt blurb blurred blurry blurt blush blustery boaster boastful boasting boat bobbed bobbing bobble bobcat bobsled bobtail bodacious body bogged boggle bogus boil bok bolster bolt bonanza bonded bonding bondless boned bonehead boneless bonelike boney bonfire bonnet bonsai bonus bony boogeyman boogieman book boondocks booted booth bootie booting bootlace bootleg boots boozy borax boring borough borrower borrowing boss botanical botanist botany botch both bottle bottling bottom bounce bouncing bouncy bounding boundless bountiful bovine boxcar boxer boxing boxlike boxy breach breath breeches breeching breeder breeding breeze breezy brethren brewery brewing briar bribe brick bride bridged brigade bright brilliant brim bring brink brisket briskly briskness bristle brittle broadband broadcast broaden broadly broadness broadside broadways broiler broiling broken broker bronchial bronco bronze bronzing brook broom brought browbeat brownnose browse browsing bruising brunch brunette brunt brush brussels brute brutishly bubble bubbling bubbly buccaneer bucked bucket buckle buckshot buckskin bucktooth buckwheat buddhism buddhist budding buddy budget buffalo buffed buffer buffing buffoon buggy bulb bulge bulginess bulgur bulk bulldog bulldozer bullfight bullfrog bullhorn bullion bullish bullpen bullring bullseye bullwhip bully bunch bundle bungee bunion bunkbed bunkhouse bunkmate bunny bunt busboy bush busily busload bust busybody buzz cabana cabbage cabbie cabdriver cable caboose cache cackle cacti cactus caddie caddy cadet cadillac cadmium cage cahoots cake calamari calamity calcium calculate calculus caliber calibrate calm caloric calorie calzone camcorder cameo camera camisole camper campfire camping campsite campus canal canary cancel candied candle candy cane canine canister cannabis canned canning cannon cannot canola canon canopener canopy canteen canyon capable capably capacity cape capillary capital capitol capped capricorn capsize capsule caption captivate captive captivity capture caramel carat caravan carbon cardboard carded cardiac cardigan cardinal cardstock carefully caregiver careless caress caretaker cargo caring carless carload carmaker carnage carnation carnival carnivore carol carpenter carpentry carpool carport carried carrot carrousel carry cartel cartload carton cartoon cartridge cartwheel carve carving carwash cascade case cash casing casino casket cassette casually casualty catacomb catalog catalyst catalyze catapult cataract catatonic catcall catchable catcher catching catchy caterer catering catfight catfish cathedral cathouse catlike catnap catnip catsup cattail cattishly cattle catty catwalk caucasian caucus causal causation cause causing cauterize caution cautious cavalier cavalry caviar cavity cedar celery celestial celibacy celibate celtic cement census ceramics ceremony certainly certainty certified certify cesarean cesspool chafe chaffing chain chair chalice challenge chamber chamomile champion chance change channel chant chaos chaperone chaplain chapped chaps chapter character charbroil charcoal charger charging chariot charity charm charred charter charting chase chasing chaste chastise chastity chatroom chatter chatting chatty cheating cheddar cheek cheer cheese cheesy chef chemicals chemist chemo cherisher cherub chess chest chevron chevy chewable chewer chewing chewy chief chihuahua childcare childhood childish childless childlike chili chill chimp chip chirping chirpy chitchat chivalry chive chloride chlorine choice chokehold choking chomp chooser choosing choosy chop chosen chowder chowtime chrome chubby chuck chug chummy chump chunk churn chute cider cilantro cinch cinema cinnamon circle circling circular circulate circus citable citadel citation citizen citric citrus city civic civil clad claim clambake clammy clamor clamp clamshell clang clanking clapped clapper clapping clarify clarinet clarity clash clasp class clatter clause clavicle claw clay clean clear cleat cleaver cleft clench clergyman clerical clerk clever clicker client climate climatic cling clinic clinking clip clique cloak clobber clock clone cloning closable closure clothes clothing cloud clover clubbed clubbing clubhouse clump clumsily clumsy clunky clustered clutch clutter coach coagulant coastal coaster coasting coastland coastline coat coauthor cobalt cobbler cobweb cocoa coconut cod coeditor coerce coexist coffee cofounder cognition cognitive cogwheel coherence coherent cohesive coil coke cola cold coleslaw coliseum collage collapse collar collected collector collide collie collision colonial colonist colonize colony colossal colt coma come comfort comfy comic coming comma commence commend comment commerce commode commodity commodore common commotion commute commuting compacted compacter compactly compactor companion company compare compel compile comply component composed composer composite compost composure compound compress comprised computer computing comrade concave conceal conceded concept concerned concert conch concierge concise conclude concrete concur condense condiment condition condone conducive conductor conduit cone confess confetti confidant confident confider confiding configure confined confining confirm conflict conform confound confront confused confusing confusion congenial congested congrats congress conical conjoined conjure conjuror connected connector consensus consent console consoling consonant constable constant constrain constrict construct consult consumer consuming contact container contempt contend contented contently contents contest context contort contour contrite control contusion convene convent copartner cope copied copier copilot coping copious copper copy coral cork cornball cornbread corncob cornea corned corner cornfield cornflake cornhusk cornmeal cornstalk corny coronary coroner corporal corporate corral correct corridor corrode corroding corrosive corsage corset cortex cosigner cosmetics cosmic cosmos cosponsor cost cottage cotton couch cough could countable countdown counting countless country county courier covenant cover coveted coveting coyness cozily coziness cozy crabbing crabgrass crablike crabmeat cradle cradling crafter craftily craftsman craftwork crafty cramp cranberry crane cranial cranium crank crate crave craving crawfish crawlers crawling crayfish crayon crazed crazily craziness crazy creamed creamer creamlike crease creasing creatable create creation creative creature credible credibly credit creed creme creole crepe crept crescent crested cresting crestless crevice crewless crewman crewmate crib cricket cried crier crimp crimson cringe cringing crinkle crinkly crisped crisping crisply crispness crispy criteria critter croak crock crook croon crop cross crouch crouton crowbar crowd crown crucial crudely crudeness cruelly cruelness cruelty crumb crummiest crummy crumpet crumpled cruncher crunching crunchy crusader crushable crushed crusher crushing crust crux crying cryptic crystal cubbyhole cube cubical cubicle cucumber cuddle cuddly cufflink culinary culminate culpable culprit cultivate cultural culture cupbearer cupcake cupid cupped cupping curable curator curdle cure curfew curing curled curler curliness curling curly curry curse cursive cursor curtain curtly curtsy curvature curve curvy cushy cusp cussed custard custodian custody customary customer customize customs cut cycle cyclic cycling cyclist cylinder cymbal cytoplasm cytoplast dab dad daffodil dagger daily daintily dainty dairy daisy dallying dance dancing dandelion dander dandruff dandy danger dangle dangling daredevil dares daringly darkened darkening darkish darkness darkroom darling darn dart darwinism dash dastardly data datebook dating daughter daunting dawdler dawn daybed daybreak daycare daydream daylight daylong dayroom daytime dazzler dazzling deacon deafening deafness dealer dealing dealmaker dealt dean debatable debate debating debit debrief debtless debtor debug debunk decade decaf decal decathlon decay deceased deceit deceiver deceiving december decency decent deception deceptive decibel decidable decimal decimeter decipher deck declared decline decode decompose decorated decorator decoy decrease decree dedicate dedicator deduce deduct deed deem deepen deeply deepness deface defacing defame default defeat defection defective defendant defender defense defensive deferral deferred defiance defiant defile defiling define definite deflate deflation deflator deflected deflector defog deforest defraud defrost deftly defuse defy degraded degrading degrease degree dehydrate deity dejected delay delegate delegator delete deletion delicacy delicate delicious delighted delirious delirium deliverer delivery delouse delta deluge delusion deluxe demanding demeaning demeanor demise democracy democrat demote demotion demystify denatured deniable denial denim denote dense density dental dentist denture deny deodorant deodorize departed departure depict deplete depletion deplored deploy deport depose depraved depravity deprecate depress deprive depth deputize deputy derail deranged derby derived desecrate deserve deserving designate designed designer designing deskbound desktop deskwork desolate despair despise despite destiny destitute destruct detached detail detection detective detector detention detergent detest detonate detonator detoxify detract deuce devalue deviancy deviant deviate deviation deviator device devious devotedly devotee devotion devourer devouring devoutly dexterity dexterous diabetes diabetic diabolic diagnoses diagnosis diagram dial diameter diaper diaphragm diary dice dicing dictate dictation dictator difficult diffused diffuser diffusion diffusive dig dilation diligence diligent dill dilute dime diminish dimly dimmed dimmer dimness dimple diner dingbat dinghy dinginess dingo dingy dining dinner diocese dioxide diploma dipped dipper dipping directed direction directive directly directory direness dirtiness disabled disagree disallow disarm disarray disaster disband disbelief disburse discard discern discharge disclose discolor discount discourse discover discuss disdain disengage disfigure disgrace dish disinfect disjoin disk dislike disliking dislocate dislodge disloyal dismantle dismay dismiss dismount disobey disorder disown disparate disparity dispatch dispense dispersal dispersed disperser displace display displease disposal dispose disprove dispute disregard disrupt dissuade distance distant distaste distill distinct distort distract distress district distrust ditch ditto ditzy dividable divided dividend dividers dividing divinely diving divinity divisible divisibly division divisive divorcee dizziness dizzy doable docile dock doctrine document dodge dodgy doily doing dole dollar dollhouse dollop dolly dolphin domain domelike domestic dominion dominoes donated donation donator donor donut doodle doorbell doorframe doorknob doorman doormat doornail doorpost doorstep doorstop doorway doozy dork dormitory dorsal dosage dose dotted doubling douche dove down dowry doze drab dragging dragonfly dragonish dragster drainable drainage drained drainer drainpipe dramatic dramatize drank drapery drastic draw dreaded dreadful dreadlock dreamboat dreamily dreamland dreamless dreamlike dreamt dreamy drearily dreary drench dress drew dribble dried drier drift driller drilling drinkable drinking dripping drippy drivable driven driver driveway driving drizzle drizzly drone drool droop drop-down dropbox dropkick droplet dropout dropper drove drown drowsily drudge drum dry dubbed dubiously duchess duckbill ducking duckling ducktail ducky duct dude duffel dugout duh duke duller dullness duly dumping dumpling dumpster duo dupe duplex duplicate duplicity durable durably duration duress during dusk dust dutiful duty duvet dwarf dweeb dwelled dweller dwelling dwindle dwindling dynamic dynamite dynasty dyslexia dyslexic each eagle earache eardrum earflap earful earlobe early earmark earmuff earphone earpiece earplugs earring earshot earthen earthlike earthling earthly earthworm earthy earwig easeful easel easiest easily easiness easing eastbound eastcoast easter eastward eatable eaten eatery eating eats ebay ebony ebook ecard eccentric echo eclair eclipse ecologist ecology economic economist economy ecosphere ecosystem edge edginess edging edgy edition editor educated education educator eel effective effects efficient effort eggbeater egging eggnog eggplant eggshell egomaniac egotism egotistic either eject elaborate elastic elated elbow eldercare elderly eldest electable election elective elephant elevate elevating elevation elevator eleven elf eligible eligibly eliminate elite elitism elixir elk ellipse elliptic elm elongated elope eloquence eloquent elsewhere elude elusive elves email embargo embark embassy embattled embellish ember embezzle emblaze emblem embody embolism emboss embroider emcee emerald emergency emission emit emote emoticon emotion empathic empathy emperor emphases emphasis emphasize emphatic empirical employed employee employer emporium empower emptier emptiness empty emu enable enactment enamel enchanted enchilada encircle enclose enclosure encode encore encounter encourage encroach encrust encrypt endanger endeared endearing ended ending endless endnote endocrine endorphin endorse endowment endpoint endurable endurance enduring energetic energize energy enforced enforcer engaged engaging engine engorge engraved engraver engraving engross engulf enhance enigmatic enjoyable enjoyably enjoyer enjoying enjoyment enlarged enlarging enlighten enlisted enquirer enrage enrich enroll enslave ensnare ensure entail entangled entering entertain enticing entire entitle entity entomb entourage entrap entree entrench entrust entryway entwine enunciate envelope enviable enviably envious envision envoy envy enzyme epic epidemic epidermal epidermis epidural epilepsy epileptic epilogue epiphany episode equal equate equation equator equinox equipment equity equivocal eradicate erasable erased eraser erasure ergonomic errand errant erratic error erupt escalate escalator escapable escapade escapist escargot eskimo esophagus espionage espresso esquire essay essence essential establish estate esteemed estimate estimator estranged estrogen etching eternal eternity ethanol ether ethically ethics euphemism evacuate evacuee evade evaluate evaluator evaporate evasion evasive even everglade evergreen everybody everyday everyone evict evidence evident evil evoke evolution evolve exact exalted example excavate excavator exceeding exception excess exchange excitable exciting exclaim exclude excluding exclusion exclusive excretion excretory excursion excusable excusably excuse exemplary exemplify exemption exerciser exert exes exfoliate exhale exhaust exhume exile existing exit exodus exonerate exorcism exorcist expand expanse expansion expansive expectant expedited expediter expel expend expenses expensive expert expire expiring explain expletive explicit explode exploit explore exploring exponent exporter exposable expose exposure express expulsion exquisite extended extending extent extenuate exterior external extinct extortion extradite extras extrovert extrude extruding exuberant fable fabric fabulous facebook facecloth facedown faceless facelift faceplate faceted facial facility facing facsimile faction factoid factor factsheet factual faculty fade fading failing falcon fall false falsify fame familiar family famine famished fanatic fancied fanciness fancy fanfare fang fanning fantasize fantastic fantasy fascism fastball faster fasting fastness faucet favorable favorably favored favoring favorite fax feast federal fedora feeble feed feel feisty feline felt-tip feminine feminism feminist feminize femur fence fencing fender ferment fernlike ferocious ferocity ferret ferris ferry fervor fester festival festive festivity fetal fetch fever fiber fiction fiddle fiddling fidelity fidgeting fidgety fifteen fifth fiftieth fifty figment figure figurine filing filled filler filling film filter filth filtrate finale finalist finalize finally finance financial finch fineness finer finicky finished finisher finishing finite finless finlike fiscally fit five flaccid flagman flagpole flagship flagstick flagstone flail flakily flaky flame flammable flanked flanking flannels flap flaring flashback flashbulb flashcard flashily flashing flashy flask flatbed flatfoot flatly flatness flatten flattered flatterer flattery flattop flatware flatworm flavored flavorful flavoring flaxseed fled fleshed fleshy flick flier flight flinch fling flint flip flirt float flock flogging flop floral florist floss flounder flyable flyaway flyer flying flyover flypaper foam foe fog foil folic folk follicle follow fondling fondly fondness fondue font food fool footage football footbath footboard footer footgear foothill foothold footing footless footman footnote footpad footpath footprint footrest footsie footsore footwear footwork fossil foster founder founding fountain fox foyer fraction fracture fragile fragility fragment fragrance fragrant frail frame framing frantic fraternal frayed fraying frays freckled freckles freebase freebee freebie freedom freefall freehand freeing freeload freely freemason freeness freestyle freeware freeway freewill freezable freezing freight french frenzied frenzy frequency frequent fresh fretful fretted friction friday fridge fried friend frighten frightful frigidity frigidly frill fringe frisbee frisk fritter frivolous frolic from front frostbite frosted frostily frosting frostlike frosty froth frown frozen fructose frugality frugally fruit frustrate frying gab gaffe gag gainfully gaining gains gala gallantly galleria gallery galley gallon gallows gallstone galore galvanize gambling game gaming gamma gander gangly gangrene gangway gap garage garbage garden gargle garland garlic garment garnet garnish garter gas gatherer gathering gating gauging gauntlet gauze gave gawk gazing gear gecko geek geiger gem gender generic generous genetics genre gentile gentleman gently gents geography geologic geologist geology geometric geometry geranium gerbil geriatric germicide germinate germless germproof gestate gestation gesture getaway getting getup giant gibberish giblet giddily giddiness giddy gift gigabyte gigahertz gigantic giggle giggling giggly gigolo gilled gills gimmick girdle giveaway given giver giving gizmo gizzard glacial glacier glade gladiator gladly glamorous glamour glance glancing glandular glare glaring glass glaucoma glazing gleaming gleeful glider gliding glimmer glimpse glisten glitch glitter glitzy gloater gloating gloomily gloomy glorified glorifier glorify glorious glory gloss glove glowing glowworm glucose glue gluten glutinous glutton gnarly gnat goal goatskin goes goggles going goldfish goldmine goldsmith golf goliath gonad gondola gone gong good gooey goofball goofiness goofy google goon gopher gore gorged gorgeous gory gosling gossip gothic gotten gout gown grab graceful graceless gracious gradation graded grader gradient grading gradually graduate graffiti grafted grafting grain granddad grandkid grandly grandma grandpa grandson granite granny granola grant granular grape graph grapple grappling grasp grass gratified gratify grating gratitude gratuity gravel graveness graves graveyard gravitate gravity gravy gray grazing greasily greedily greedless greedy green greeter greeting grew greyhound grid grief grievance grieving grievous grill grimace grimacing grime griminess grimy grinch grinning grip gristle grit groggily groggy groin groom groove grooving groovy grope ground grouped grout grove grower growing growl grub grudge grudging grueling gruffly grumble grumbling grumbly grumpily grunge grunt guacamole guidable guidance guide guiding guileless guise gulf gullible gully gulp gumball gumdrop gumminess gumming gummy gurgle gurgling guru gush gusto gusty gutless guts gutter guy guzzler gyration habitable habitant habitat habitual hacked hacker hacking hacksaw had haggler haiku half halogen halt halved halves hamburger hamlet hammock hamper hamster hamstring handbag handball handbook handbrake handcart handclap handclasp handcraft handcuff handed handful handgrip handgun handheld handiness handiwork handlebar handled handler handling handmade handoff handpick handprint handrail handsaw handset handsfree handshake handstand handwash handwork handwoven handwrite handyman hangnail hangout hangover hangup hankering hankie hanky haphazard happening happier happiest happily happiness happy harbor hardcopy hardcore hardcover harddisk hardened hardener hardening hardhat hardhead hardiness hardly hardness hardship hardware hardwired hardwood hardy harmful harmless harmonica harmonics harmonize harmony harness harpist harsh harvest hash hassle haste hastily hastiness hasty hatbox hatchback hatchery hatchet hatching hatchling hate hatless hatred haunt haven hazard hazelnut hazily haziness hazing hazy headache headband headboard headcount headdress headed header headfirst headgear heading headlamp headless headlock headphone headpiece headrest headroom headscarf headset headsman headstand headstone headway headwear heap heat heave heavily heaviness heaving hedge hedging heftiness hefty helium helmet helper helpful helping helpless helpline hemlock hemstitch hence henchman henna herald herbal herbicide herbs heritage hermit heroics heroism herring herself hertz hesitancy hesitant hesitate hexagon hexagram hubcap huddle huddling huff hug hula hulk hull human humble humbling humbly humid humiliate humility humming hummus humongous humorist humorless humorous humpback humped humvee hunchback hundredth hunger hungrily hungry hunk hunter hunting huntress huntsman hurdle hurled hurler hurling hurray hurricane hurried hurry hurt husband hush husked huskiness hut hybrid hydrant hydrated hydration hydrogen hydroxide hyperlink hypertext hyphen hypnoses hypnosis hypnotic hypnotism hypnotist hypnotize hypocrisy hypocrite ibuprofen ice iciness icing icky icon icy idealism idealist idealize ideally idealness identical identify identity ideology idiocy idiom idly igloo ignition ignore iguana illicitly illusion illusive image imaginary imagines imaging imbecile imitate imitation immature immerse immersion imminent immobile immodest immorally immortal immovable immovably immunity immunize impaired impale impart impatient impeach impeding impending imperfect imperial impish implant implement implicate implicit implode implosion implosive imply impolite important importer impose imposing impotence impotency impotent impound imprecise imprint imprison impromptu improper improve improving improvise imprudent impulse impulsive impure impurity iodine iodize ion ipad iphone ipod irate irk iron irregular irrigate irritable irritably irritant irritate islamic islamist isolated isolating isolation isotope issue issuing italicize italics item itinerary itunes ivory ivy jab jackal jacket jackknife jackpot jailbird jailbreak jailer jailhouse jalapeno jam janitor january jargon jarring jasmine jaundice jaunt java jawed jawless jawline jaws jaybird jaywalker jazz jeep jeeringly jellied jelly jersey jester jet jiffy jigsaw jimmy jingle jingling jinx jitters jittery job jockey jockstrap jogger jogging john joining jokester jokingly jolliness jolly jolt jot jovial joyfully joylessly joyous joyride joystick jubilance jubilant judge judgingly judicial judiciary judo juggle juggling jugular juice juiciness juicy jujitsu jukebox july jumble jumbo jump junction juncture june junior juniper junkie junkman junkyard jurist juror jury justice justifier justify justly justness juvenile kabob kangaroo karaoke karate karma kebab keenly keenness keep keg kelp kennel kept kerchief kerosene kettle kick kiln kilobyte kilogram kilometer kilowatt kilt kimono kindle kindling kindly kindness kindred kinetic kinfolk king kinship kinsman kinswoman kissable kisser kissing kitchen kite kitten kitty kiwi kleenex knapsack knee knelt knickers knoll koala kooky kosher krypton kudos kung labored laborer laboring laborious labrador ladder ladies ladle ladybug ladylike lagged lagging lagoon lair lake lance landed landfall landfill landing landlady landless landline landlord landmark landmass landmine landowner landscape landside landslide language lankiness lanky lantern lapdog lapel lapped lapping laptop lard large lark lash lasso last latch late lather latitude latrine latter latticed launch launder laundry laurel lavender lavish laxative lazily laziness lazy lecturer left legacy legal legend legged leggings legible legibly legislate lego legroom legume legwarmer legwork lemon lend length lens lent leotard lesser letdown lethargic lethargy letter lettuce level leverage levers levitate levitator liability liable liberty librarian library licking licorice lid life lifter lifting liftoff ligament likely likeness likewise liking lilac lilly lily limb limeade limelight limes limit limping limpness line lingo linguini linguist lining linked linoleum linseed lint lion lip liquefy liqueur liquid lisp list litigate litigator litmus litter little livable lived lively liver livestock lividly living lizard lubricant lubricate lucid luckily luckiness luckless lucrative ludicrous lugged lukewarm lullaby lumber luminance luminous lumpiness lumping lumpish lunacy lunar lunchbox luncheon lunchroom lunchtime lung lurch lure luridness lurk lushly lushness luster lustfully lustily lustiness lustrous lusty luxurious luxury lying lyrically lyricism lyricist lyrics macarena macaroni macaw mace machine machinist magazine magenta maggot magical magician magma magnesium magnetic magnetism magnetize magnifier magnify magnitude magnolia mahogany maimed majestic majesty majorette majority makeover maker makeshift making malformed malt mama mammal mammary mammogram manager managing manatee mandarin mandate mandatory mandolin manger mangle mango mangy manhandle manhole manhood manhunt manicotti manicure manifesto manila mankind manlike manliness manly manmade manned mannish manor manpower mantis mantra manual many map marathon marauding marbled marbles marbling march mardi margarine margarita margin marigold marina marine marital maritime marlin marmalade maroon married marrow marry marshland marshy marsupial marvelous marxism mascot masculine mashed mashing massager masses massive mastiff matador matchbook matchbox matcher matching matchless material maternal maternity math mating matriarch matrimony matrix matron matted matter maturely maturing maturity mauve maverick maximize maximum maybe mayday mayflower moaner moaning mobile mobility mobilize mobster mocha mocker mockup modified modify modular modulator module moisten moistness moisture molar molasses mold molecular molecule molehill mollusk mom monastery monday monetary monetize moneybags moneyless moneywise mongoose mongrel monitor monkhood monogamy monogram monologue monopoly monorail monotone monotype monoxide monsieur monsoon monstrous monthly monument moocher moodiness moody mooing moonbeam mooned moonlight moonlike moonlit moonrise moonscape moonshine moonstone moonwalk mop morale morality morally morbidity morbidly morphine morphing morse mortality mortally mortician mortified mortify mortuary mosaic mossy most mothball mothproof motion motivate motivator motive motocross motor motto mountable mountain mounted mounting mourner mournful mouse mousiness moustache mousy mouth movable move movie moving mower mowing much muck mud mug mulberry mulch mule mulled mullets multiple multiply multitask multitude mumble mumbling mumbo mummified mummify mummy mumps munchkin mundane municipal muppet mural murkiness murky murmuring muscular museum mushily mushiness mushroom mushy music musket muskiness musky mustang mustard muster mustiness musty mutable mutate mutation mute mutilated mutilator mutiny mutt mutual muzzle myself myspace mystified mystify myth nacho nag nail name naming nanny nanometer nape napkin napped napping nappy narrow nastily nastiness national native nativity natural nature naturist nautical navigate navigator navy nearby nearest nearly nearness neatly neatness nebula nebulizer nectar negate negation negative neglector negligee negligent negotiate nemeses nemesis neon nephew nerd nervous nervy nest net neurology neuron neurosis neurotic neuter neutron never next nibble nickname nicotine niece nifty nimble nimbly nineteen ninetieth ninja nintendo ninth nuclear nuclei nucleus nugget nullify number numbing numbly numbness numeral numerate numerator numeric numerous nuptials nursery nursing nurture nutcase nutlike nutmeg nutrient nutshell nuttiness nutty nuzzle nylon oaf oak oasis oat obedience obedient obituary object obligate obliged oblivion oblivious oblong obnoxious oboe obscure obscurity observant observer observing obsessed obsession obsessive obsolete obstacle obstinate obstruct obtain obtrusive obtuse obvious occultist occupancy occupant occupier occupy ocean ocelot octagon octane october octopus ogle oil oink ointment okay old olive olympics omega omen ominous omission omit omnivore onboard oncoming ongoing onion online onlooker only onscreen onset onshore onslaught onstage onto onward onyx oops ooze oozy opacity opal open operable operate operating operation operative operator opium opossum opponent oppose opposing opposite oppressed oppressor opt opulently osmosis other otter ouch ought ounce outage outback outbid outboard outbound outbreak outburst outcast outclass outcome outdated outdoors outer outfield outfit outflank outgoing outgrow outhouse outing outlast outlet outline outlook outlying outmatch outmost outnumber outplayed outpost outpour output outrage outrank outreach outright outscore outsell outshine outshoot outsider outskirts outsmart outsource outspoken outtakes outthink outward outweigh outwit oval ovary oven overact overall overarch overbid overbill overbite overblown overboard overbook overbuilt overcast overcoat overcome overcook overcrowd overdraft overdrawn overdress overdrive overdue overeager overeater overexert overfed overfeed overfill overflow overfull overgrown overhand overhang overhaul overhead overhear overheat overhung overjoyed overkill overlabor overlaid overlap overlay overload overlook overlord overlying overnight overpass overpay overplant overplay overpower overprice overrate overreach overreact override overripe overrule overrun overshoot overshot oversight oversized oversleep oversold overspend overstate overstay overstep overstock overstuff oversweet overtake overthrow overtime overtly overtone overture overturn overuse overvalue overview overwrite owl oxford oxidant oxidation oxidize oxidizing oxygen oxymoron oyster ozone paced pacemaker pacific pacifier pacifism pacifist pacify padded padding paddle paddling padlock pagan pager paging pajamas palace palatable palm palpable palpitate paltry pampered pamperer pampers pamphlet panama pancake pancreas panda pandemic pang panhandle panic panning panorama panoramic panther pantomime pantry pants pantyhose paparazzi papaya paper paprika papyrus parabola parachute parade paradox paragraph parakeet paralegal paralyses paralysis paralyze paramedic parameter paramount parasail parasite parasitic parcel parched parchment pardon parish parka parking parkway parlor parmesan parole parrot parsley parsnip partake parted parting partition partly partner partridge party passable passably passage passcode passenger passerby passing passion passive passivism passover passport password pasta pasted pastel pastime pastor pastrami pasture pasty patchwork patchy paternal paternity path patience patient patio patriarch patriot patrol patronage patronize pauper pavement paver pavestone pavilion paving pawing payable payback paycheck payday payee payer paying payment payphone payroll pebble pebbly pecan pectin peculiar peddling pediatric pedicure pedigree pedometer pegboard pelican pellet pelt pelvis penalize penalty pencil pendant pending penholder penknife pennant penniless penny penpal pension pentagon pentagram pep perceive percent perch percolate perennial perfected perfectly perfume periscope perish perjurer perjury perkiness perky perm peroxide perpetual perplexed persecute persevere persuaded persuader pesky peso pessimism pessimist pester pesticide petal petite petition petri petroleum petted petticoat pettiness petty petunia phantom phobia phoenix phonebook phoney phonics phoniness phony phosphate photo phrase phrasing placard placate placidly plank planner plant plasma plaster plastic plated platform plating platinum platonic platter platypus plausible plausibly playable playback player playful playgroup playhouse playing playlist playmaker playmate playoff playpen playroom playset plaything playtime plaza pleading pleat pledge plentiful plenty plethora plexiglas pliable plod plop plot plow ploy pluck plug plunder plunging plural plus plutonium plywood poach pod poem poet pogo pointed pointer pointing pointless pointy poise poison poker poking polar police policy polio polish politely polka polo polyester polygon polygraph polymer poncho pond pony popcorn pope poplar popper poppy popsicle populace popular populate porcupine pork porous porridge portable portal portfolio porthole portion portly portside poser posh posing possible possibly possum postage postal postbox postcard posted poster posting postnasal posture postwar pouch pounce pouncing pound pouring pout powdered powdering powdery power powwow pox praising prance prancing pranker prankish prankster prayer praying preacher preaching preachy preamble precinct precise precision precook precut predator predefine predict preface prefix preflight preformed pregame pregnancy pregnant preheated prelaunch prelaw prelude premiere premises premium prenatal preoccupy preorder prepaid prepay preplan preppy preschool prescribe preseason preset preshow president presoak press presume presuming preteen pretended pretender pretense pretext pretty pretzel prevail prevalent prevent preview previous prewar prewashed prideful pried primal primarily primary primate primer primp princess print prior prism prison prissy pristine privacy private privatize prize proactive probable probably probation probe probing probiotic problem procedure process proclaim procreate procurer prodigal prodigy produce product profane profanity professed professor profile profound profusely progeny prognosis program progress projector prologue prolonged promenade prominent promoter promotion prompter promptly prone prong pronounce pronto proofing proofread proofs propeller properly property proponent proposal propose props prorate protector protegee proton prototype protozoan protract protrude proud provable proved proven provided provider providing province proving provoke provoking provolone prowess prowler prowling proximity proxy prozac prude prudishly prune pruning pry psychic public publisher pucker pueblo pug pull pulmonary pulp pulsate pulse pulverize puma pumice pummel punch punctual punctuate punctured pungent punisher punk pupil puppet puppy purchase pureblood purebred purely pureness purgatory purge purging purifier purify purist puritan purity purple purplish purposely purr purse pursuable pursuant pursuit purveyor pushcart pushchair pusher pushiness pushing pushover pushpin pushup pushy putdown putt puzzle puzzling pyramid pyromania python quack quadrant quail quaintly quake quaking qualified qualifier qualify quality qualm quantum quarrel quarry quartered quarterly quarters quartet quench query quicken quickly quickness quicksand quickstep quiet quill quilt quintet quintuple quirk quit quiver quizzical quotable quotation quote rabid race racing racism rack racoon radar radial radiance radiantly radiated radiation radiator radio radish raffle raft rage ragged raging ragweed raider railcar railing railroad railway raisin rake raking rally ramble rambling ramp ramrod ranch rancidity random ranged ranger ranging ranked ranking ransack ranting rants rare rarity rascal rash rasping ravage raven ravine raving ravioli ravishing reabsorb reach reacquire reaction reactive reactor reaffirm ream reanalyze reappear reapply reappoint reapprove rearrange rearview reason reassign reassure reattach reawake rebalance rebate rebel rebirth reboot reborn rebound rebuff rebuild rebuilt reburial rebuttal recall recant recapture recast recede recent recess recharger recipient recital recite reckless reclaim recliner reclining recluse reclusive recognize recoil recollect recolor reconcile reconfirm reconvene recopy record recount recoup recovery recreate rectal rectangle rectified rectify recycled recycler recycling reemerge reenact reenter reentry reexamine referable referee reference refill refinance refined refinery refining refinish reflected reflector reflex reflux refocus refold reforest reformat reformed reformer reformist refract refrain refreeze refresh refried refueling refund refurbish refurnish refusal refuse refusing refutable refute regain regalia regally reggae regime region register registrar registry regress regretful regroup regular regulate regulator rehab reheat rehire rehydrate reimburse reissue reiterate rejoice rejoicing rejoin rekindle relapse relapsing relatable related relation relative relax relay relearn release relenting reliable reliably reliance reliant relic relieve relieving relight relish relive reload relocate relock reluctant rely remake remark remarry rematch remedial remedy remember reminder remindful remission remix remnant remodeler remold remorse remote removable removal removed remover removing rename renderer rendering rendition renegade renewable renewably renewal renewed renounce renovate renovator rentable rental rented renter reoccupy reoccur reopen reorder repackage repacking repaint repair repave repaying repayment repeal repeated repeater repent rephrase replace replay replica reply reporter repose repossess repost repressed reprimand reprint reprise reproach reprocess reproduce reprogram reps reptile reptilian repugnant repulsion repulsive repurpose reputable reputably request require requisite reroute rerun resale resample rescuer reseal research reselect reseller resemble resend resent reset reshape reshoot reshuffle residence residency resident residual residue resigned resilient resistant resisting resize resolute resolved resonant resonate resort resource respect resubmit result resume resupply resurface resurrect retail retainer retaining retake retaliate retention rethink retinal retired retiree retiring retold retool retorted retouch retrace retract retrain retread retreat retrial retrieval retriever retry return retying retype reunion reunite reusable reuse reveal reveler revenge revenue reverb revered reverence reverend reversal reverse reversing reversion revert revisable revise revision revisit revivable revival reviver reviving revocable revoke revolt revolver revolving reward rewash rewind rewire reword rework rewrap rewrite rhyme ribbon ribcage rice riches richly richness rickety ricotta riddance ridden ride riding rifling rift rigging rigid rigor rimless rimmed rind rink rinse rinsing riot ripcord ripeness ripening ripping ripple rippling riptide rise rising risk risotto ritalin ritzy rival riverbank riverbed riverboat riverside riveter riveting roamer roaming roast robbing robe robin robotics robust rockband rocker rocket rockfish rockiness rocking rocklike rockslide rockstar rocky rogue roman romp rope roping roster rosy rotten rotting rotunda roulette rounding roundish roundness roundup roundworm routine routing rover roving royal rubbed rubber rubbing rubble rubdown ruby ruckus rudder rug ruined rule rumble rumbling rummage rumor runaround rundown runner running runny runt runway rupture rural ruse rush rust rut sabbath sabotage sacrament sacred sacrifice sadden saddlebag saddled saddling sadly sadness safari safeguard safehouse safely safeness saffron saga sage sagging saggy said saint sake salad salami salaried salary saline salon saloon salsa salt salutary salute salvage salvaging salvation same sample sampling sanction sanctity sanctuary sandal sandbag sandbank sandbar sandblast sandbox sanded sandfish sanding sandlot sandpaper sandpit sandstone sandstorm sandworm sandy sanitary sanitizer sank santa sapling sappiness sappy sarcasm sarcastic sardine sash sasquatch sassy satchel satiable satin satirical satisfied satisfy saturate saturday sauciness saucy sauna savage savanna saved savings savior savor saxophone say scabbed scabby scalded scalding scale scaling scallion scallop scalping scam scandal scanner scanning scant scapegoat scarce scarcity scarecrow scared scarf scarily scariness scarring scary scavenger scenic schedule schematic scheme scheming schilling schnapps scholar science scientist scion scoff scolding scone scoop scooter scope scorch scorebook scorecard scored scoreless scorer scoring scorn scorpion scotch scoundrel scoured scouring scouting scouts scowling scrabble scraggly scrambled scrambler scrap scratch scrawny screen scribble scribe scribing scrimmage script scroll scrooge scrounger scrubbed scrubber scruffy scrunch scrutiny scuba scuff sculptor sculpture scurvy scuttle secluded secluding seclusion second secrecy secret sectional sector secular securely security sedan sedate sedation sedative sediment seduce seducing segment seismic seizing seldom selected selection selective selector self seltzer semantic semester semicolon semifinal seminar semisoft semisweet senate senator send senior senorita sensation sensitive sensitize sensually sensuous sepia september septic septum sequel sequence sequester series sermon serotonin serpent serrated serve service serving sesame sessions setback setting settle settling setup sevenfold seventeen seventh seventy severity shabby shack shaded shadily shadiness shading shadow shady shaft shakable shakily shakiness shaking shaky shale shallot shallow shame shampoo shamrock shank shanty shape shaping share sharpener sharper sharpie sharply sharpness shawl sheath shed sheep sheet shelf shell shelter shelve shelving sherry shield shifter shifting shiftless shifty shimmer shimmy shindig shine shingle shininess shining shiny ship shirt shivering shock shone shoplift shopper shopping shoptalk shore shortage shortcake shortcut shorten shorter shorthand shortlist shortly shortness shorts shortwave shorty shout shove showbiz showcase showdown shower showgirl showing showman shown showoff showpiece showplace showroom showy shrank shrapnel shredder shredding shrewdly shriek shrill shrimp shrine shrink shrivel shrouded shrubbery shrubs shrug shrunk shucking shudder shuffle shuffling shun shush shut shy siamese siberian sibling siding sierra siesta sift sighing silenced silencer silent silica silicon silk silliness silly silo silt silver similarly simile simmering simple simplify simply sincere sincerity singer singing single singular sinister sinless sinner sinuous sip siren sister sitcom sitter sitting situated situation sixfold sixteen sixth sixties sixtieth sixtyfold sizable sizably size sizing sizzle sizzling skater skating skedaddle skeletal skeleton skeptic sketch skewed skewer skid skied skier skies skiing skilled skillet skillful skimmed skimmer skimming skimpily skincare skinhead skinless skinning skinny skintight skipper skipping skirmish skirt skittle skydiver skylight skyline skype skyrocket skyward slab slacked slacker slacking slackness slacks slain slam slander slang slapping slapstick slashed slashing slate slather slaw sled sleek sleep sleet sleeve slept sliceable sliced slicer slicing slick slider slideshow sliding slighted slighting slightly slimness slimy slinging slingshot slinky slip slit sliver slobbery slogan sloped sloping sloppily sloppy slot slouching slouchy sludge slug slum slurp slush sly small smartly smartness smasher smashing smashup smell smelting smile smilingly smirk smite smith smitten smock smog smoked smokeless smokiness smoking smoky smolder smooth smother smudge smudgy smuggler smuggling smugly smugness snack snagged snaking snap snare snarl snazzy sneak sneer sneeze sneezing snide sniff snippet snipping snitch snooper snooze snore snoring snorkel snort snout snowbird snowboard snowbound snowcap snowdrift snowdrop snowfall snowfield snowflake snowiness snowless snowman snowplow snowshoe snowstorm snowsuit snowy snub snuff snuggle snugly snugness speak spearfish spearhead spearman spearmint species specimen specked speckled specks spectacle spectator spectrum speculate speech speed spellbind speller spelling spendable spender spending spent spew sphere spherical sphinx spider spied spiffy spill spilt spinach spinal spindle spinner spinning spinout spinster spiny spiral spirited spiritism spirits spiritual splashed splashing splashy splatter spleen splendid splendor splice splicing splinter splotchy splurge spoilage spoiled spoiler spoiling spoils spoken spokesman sponge spongy sponsor spoof spookily spooky spool spoon spore sporting sports sporty spotless spotlight spotted spotter spotting spotty spousal spouse spout sprain sprang sprawl spray spree sprig spring sprinkled sprinkler sprint sprite sprout spruce sprung spry spud spur sputter spyglass squabble squad squall squander squash squatted squatter squatting squeak squealer squealing squeamish squeegee squeeze squeezing squid squiggle squiggly squint squire squirt squishier squishy stability stabilize stable stack stadium staff stage staging stagnant stagnate stainable stained staining stainless stalemate staleness stalling stallion stamina stammer stamp stand stank staple stapling starboard starch stardom stardust starfish stargazer staring stark starless starlet starlight starlit starring starry starship starter starting startle startling startup starved starving stash state static statistic statue stature status statute statutory staunch stays steadfast steadier steadily steadying steam steed steep steerable steering steersman stegosaur stellar stem stench stencil step stereo sterile sterility sterilize sterling sternness sternum stew stick stiffen stiffly stiffness stifle stifling stillness stilt stimulant stimulate stimuli stimulus stinger stingily stinging stingray stingy stinking stinky stipend stipulate stir stitch stock stoic stoke stole stomp stonewall stoneware stonework stoning stony stood stooge stool stoop stoplight stoppable stoppage stopped stopper stopping stopwatch storable storage storeroom storewide storm stout stove stowaway stowing straddle straggler strained strainer straining strangely stranger strangle strategic strategy stratus straw stray streak stream street strength strenuous strep stress stretch strewn stricken strict stride strife strike striking strive striving strobe strode stroller strongbox strongly strongman struck structure strudel struggle strum strung strut stubbed stubble stubbly stubborn stucco stuck student studied studio study stuffed stuffing stuffy stumble stumbling stump stung stunned stunner stunning stunt stupor sturdily sturdy styling stylishly stylist stylized stylus suave subarctic subatomic subdivide subdued subduing subfloor subgroup subheader subject sublease sublet sublevel sublime submarine submerge submersed submitter subpanel subpar subplot subprime subscribe subscript subsector subside subsiding subsidize subsidy subsoil subsonic substance subsystem subtext subtitle subtly subtotal subtract subtype suburb subway subwoofer subzero succulent such suction sudden sudoku suds sufferer suffering suffice suffix suffocate suffrage sugar suggest suing suitable suitably suitcase suitor sulfate sulfide sulfite sulfur sulk sullen sulphate sulphuric sultry superbowl superglue superhero superior superjet superman supermom supernova supervise supper supplier supply support supremacy supreme surcharge surely sureness surface surfacing surfboard surfer surgery surgical surging surname surpass surplus surprise surreal surrender surrogate surround survey survival survive surviving survivor sushi suspect suspend suspense sustained sustainer swab swaddling swagger swampland swan swapping swarm sway swear sweat sweep swell swept swerve swifter swiftly swiftness swimmable swimmer swimming swimsuit swimwear swinger swinging swipe swirl switch swivel swizzle swooned swoop swoosh swore sworn swung sycamore sympathy symphonic symphony symptom synapse syndrome synergy synopses synopsis synthesis synthetic syrup system t-shirt tabasco tabby tableful tables tablet tableware tabloid tackiness tacking tackle tackling tacky taco tactful tactical tactics tactile tactless tadpole taekwondo tag tainted take taking talcum talisman tall talon tamale tameness tamer tamper tank tanned tannery tanning tantrum tapeless tapered tapering tapestry tapioca tapping taps tarantula target tarmac tarnish tarot tartar tartly tartness task tassel taste tastiness tasting tasty tattered tattle tattling tattoo taunt tavern thank that thaw theater theatrics thee theft theme theology theorize thermal thermos thesaurus these thesis thespian thicken thicket thickness thieving thievish thigh thimble thing think thinly thinner thinness thinning thirstily thirsting thirsty thirteen thirty thong thorn those thousand thrash thread threaten threefold thrift thrill thrive thriving throat throbbing throng throttle throwaway throwback thrower throwing thud thumb thumping thursday thus thwarting thyself tiara tibia tidal tidbit tidiness tidings tidy tiger tighten tightly tightness tightrope tightwad tigress tile tiling till tilt timid timing timothy tinderbox tinfoil tingle tingling tingly tinker tinkling tinsel tinsmith tint tinwork tiny tipoff tipped tipper tipping tiptoeing tiptop tiring tissue trace tracing track traction tractor trade trading tradition traffic tragedy trailing trailside train traitor trance tranquil transfer transform translate transpire transport transpose trapdoor trapeze trapezoid trapped trapper trapping traps trash travel traverse travesty tray treachery treading treadmill treason treat treble tree trekker tremble trembling tremor trench trend trespass triage trial triangle tribesman tribunal tribune tributary tribute triceps trickery trickily tricking trickle trickster tricky tricolor tricycle trident tried trifle trifocals trillion trilogy trimester trimmer trimming trimness trinity trio tripod tripping triumph trivial trodden trolling trombone trophy tropical tropics trouble troubling trough trousers trout trowel truce truck truffle trump trunks trustable trustee trustful trusting trustless truth try tubby tubeless tubular tucking tuesday tug tuition tulip tumble tumbling tummy turban turbine turbofan turbojet turbulent turf turkey turmoil turret turtle tusk tutor tutu tux tweak tweed tweet tweezers twelve twentieth twenty twerp twice twiddle twiddling twig twilight twine twins twirl twistable twisted twister twisting twisty twitch twitter tycoon tying tyke udder ultimate ultimatum ultra umbilical umbrella umpire unabashed unable unadorned unadvised unafraid unaired unaligned unaltered unarmored unashamed unaudited unawake unaware unbaked unbalance unbeaten unbend unbent unbiased unbitten unblended unblessed unblock unbolted unbounded unboxed unbraided unbridle unbroken unbuckled unbundle unburned unbutton uncanny uncapped uncaring uncertain unchain unchanged uncharted uncheck uncivil unclad unclaimed unclamped unclasp uncle unclip uncloak unclog unclothed uncoated uncoiled uncolored uncombed uncommon uncooked uncork uncorrupt uncounted uncouple uncouth uncover uncross uncrown uncrushed uncured uncurious uncurled uncut undamaged undated undaunted undead undecided undefined underage underarm undercoat undercook undercut underdog underdone underfed underfeed underfoot undergo undergrad underhand underline underling undermine undermost underpaid underpass underpay underrate undertake undertone undertook undertow underuse underwear underwent underwire undesired undiluted undivided undocked undoing undone undrafted undress undrilled undusted undying unearned unearth unease uneasily uneasy uneatable uneaten unedited unelected unending unengaged unenvied unequal unethical uneven unexpired unexposed unfailing unfair unfasten unfazed unfeeling unfiled unfilled unfitted unfitting unfixable unfixed unflawed unfocused unfold unfounded unframed unfreeze unfrosted unfrozen unfunded unglazed ungloved unglue ungodly ungraded ungreased unguarded unguided unhappily unhappy unharmed unhealthy unheard unhearing unheated unhelpful unhidden unhinge unhitched unholy unhook unicorn unicycle unified unifier uniformed uniformly unify unimpeded uninjured uninstall uninsured uninvited union uniquely unisexual unison unissued unit universal universe unjustly unkempt unkind unknotted unknowing unknown unlaced unlatch unlawful unleaded unlearned unleash unless unleveled unlighted unlikable unlimited unlined unlinked unlisted unlit unlivable unloaded unloader unlocked unlocking unlovable unloved unlovely unloving unluckily unlucky unmade unmanaged unmanned unmapped unmarked unmasked unmasking unmatched unmindful unmixable unmixed unmolded unmoral unmovable unmoved unmoving unnamable unnamed unnatural unneeded unnerve unnerving unnoticed unopened unopposed unpack unpadded unpaid unpainted unpaired unpaved unpeeled unpicked unpiloted unpinned unplanned unplanted unpleased unpledged unplowed unplug unpopular unproven unquote unranked unrated unraveled unreached unread unreal unreeling unrefined unrelated unrented unrest unretired unrevised unrigged unripe unrivaled unroasted unrobed unroll unruffled unruly unrushed unsaddle unsafe unsaid unsalted unsaved unsavory unscathed unscented unscrew unsealed unseated unsecured unseeing unseemly unseen unselect unselfish unsent unsettled unshackle unshaken unshaved unshaven unsheathe unshipped unsightly unsigned unskilled unsliced unsmooth unsnap unsocial unsoiled unsold unsolved unsorted unspoiled unspoken unstable unstaffed unstamped unsteady unsterile unstirred unstitch unstopped unstuck unstuffed unstylish unsubtle unsubtly unsuited unsure unsworn untagged untainted untaken untamed untangled untapped untaxed unthawed unthread untidy untie until untimed untimely untitled untoasted untold untouched untracked untrained untreated untried untrimmed untrue untruth unturned untwist untying unusable unused unusual unvalued unvaried unvarying unveiled unveiling unvented unviable unvisited unvocal unwanted unwarlike unwary unwashed unwatched unweave unwed unwelcome unwell unwieldy unwilling unwind unwired unwitting unwomanly unworldly unworn unworried unworthy unwound unwoven unwrapped unwritten unzip upbeat upchuck upcoming upcountry update upfront upgrade upheaval upheld uphill uphold uplifted uplifting upload upon upper upright uprising upriver uproar uproot upscale upside upstage upstairs upstart upstate upstream upstroke upswing uptake uptight uptown upturned upward upwind uranium urban urchin urethane urgency urgent urging urologist urology usable usage useable used uselessly user usher usual utensil utility utilize utmost utopia utter vacancy vacant vacate vacation vagabond vagrancy vagrantly vaguely vagueness valiant valid valium valley valuables value vanilla vanish vanity vanquish vantage vaporizer variable variably varied variety various varmint varnish varsity varying vascular vaseline vastly vastness veal vegan veggie vehicular velcro velocity velvet vendetta vending vendor veneering vengeful venomous ventricle venture venue venus verbalize verbally verbose verdict verify verse version versus vertebrae vertical vertigo very vessel vest veteran veto vexingly viability viable vibes vice vicinity victory video viewable viewer viewing viewless viewpoint vigorous village villain vindicate vineyard vintage violate violation violator violet violin viper viral virtual virtuous virus visa viscosity viscous viselike visible visibly vision visiting visitor visor vista vitality vitalize vitally vitamins vivacious vividly vividness vixen vocalist vocalize vocally vocation voice voicing void volatile volley voltage volumes voter voting voucher vowed vowel voyage wackiness wad wafer waffle waged wager wages waggle wagon wake waking walk walmart walnut walrus waltz wand wannabe wanted wanting wasabi washable washbasin washboard washbowl washcloth washday washed washer washhouse washing washout washroom washstand washtub wasp wasting watch water waviness waving wavy whacking whacky wham wharf wheat whenever whiff whimsical whinny whiny whisking whoever whole whomever whoopee whooping whoops why wick widely widen widget widow width wieldable wielder wife wifi wikipedia wildcard wildcat wilder wildfire wildfowl wildland wildlife wildly wildness willed willfully willing willow willpower wilt wimp wince wincing wind wing winking winner winnings winter wipe wired wireless wiring wiry wisdom wise wish wisplike wispy wistful wizard wobble wobbling wobbly wok wolf wolverine womanhood womankind womanless womanlike womanly womb woof wooing wool woozy word work worried worrier worrisome worry worsening worshiper worst wound woven wow wrangle wrath wreath wreckage wrecker wrecking wrench wriggle wriggly wrinkle wrinkly wrist writing written wrongdoer wronged wrongful wrongly wrongness wrought xbox xerox yahoo yam yanking yapping yard yarn yeah yearbook yearling yearly yearning yeast yelling yelp yen yesterday yiddish yield yin yippee yo-yo yodel yoga yogurt yonder yoyo yummy zap zealous zebra zen zeppelin zero zestfully zesty zigzagged zipfile zipping zippy zips zit zodiac zombie zone zoning zookeeper zoologist zoology zoom".split(" ");
+  if (typeof module !== "undefined" && module.exports) module.exports = WORDS;
+  else g.LC_WORDS_LARGE = WORDS;
+})(typeof self !== "undefined" ? self : this);
+
+</script>
+<script>
+(function (g) {
+  // LinearCipher v4 core — real crypto (Argon2id + AES-256-GCM), symbols as encoding.
+  // Dependency-injected so it runs identically in the browser and in Node tests.
+  //
+  // deps = { argon2id, subtle, getRandomValues }
+  //   argon2id:        async ({password,salt,parallelism,iterations,memorySize,hashLength,outputType}) -> Uint8Array
+  //   subtle:          WebCrypto SubtleCrypto (digest / importKey / encrypt / decrypt)
+  //   getRandomValues: (Uint8Array) -> void   (CSPRNG)
+  function createLinearCipher(deps) {
+    var argon2id = deps.argon2id;
+    var subtle = deps.subtle;
+    var getRandomValues = deps.getRandomValues;
+
+    var VERSION = 0x05; // bumped in v4.06: salt now depends on the first word
+    // Argon2id profile (RFC 9106 second recommended option). FIXED so both parties
+    // always derive the same key — no interop-breaking "strength" toggle.
+    var ARGON = { memorySize: 65536 /* KiB = 64 MiB */, iterations: 3, parallelism: 1, hashLength: 32 };
+
+    var enc = new TextEncoder();
+    var dec = new TextDecoder();
+
+    // --- Symbol alphabet: exactly 256 unique, single-scalar, NFC-stable, text-presentation
+    // glyphs (Box Drawing, Block Elements, Geometric Shapes, then Arrows to backfill).
+    // Emoji-presentation codepoints are skipped so chat apps don't inject variation selectors.
+    function buildAlphabet() {
+      var ranges = [[0x2500, 0x257F], [0x2580, 0x259F], [0x25A0, 0x25FF], [0x2190, 0x21FF]];
+      // Skip every emoji-presentation code point. v5.01 adds the emoji arrows
+      // 0x2194..0x2199, 0x21A9, 0x21AA that chat apps mangle or strip.
+      var skip = { 0x25AA: 1, 0x25AB: 1, 0x25B6: 1, 0x25C0: 1, 0x25FB: 1, 0x25FC: 1, 0x25FD: 1, 0x25FE: 1,
+                   0x2194: 1, 0x2195: 1, 0x2196: 1, 0x2197: 1, 0x2198: 1, 0x2199: 1, 0x21A9: 1, 0x21AA: 1 };
+      var chars = [];
+      for (var r = 0; r < ranges.length && chars.length < 256; r++) {
+        for (var cp = ranges[r][0]; cp <= ranges[r][1] && chars.length < 256; cp++) {
+          if (skip[cp]) continue;
+          chars.push(String.fromCodePoint(cp));
+        }
+      }
+      return chars;
+    }
+
+    var ALPHA = buildAlphabet();
+    var REV = new Map();
+    for (var i = 0; i < ALPHA.length; i++) REV.set(ALPHA[i], i);
+    // Backward compatibility: pre-v5.01 messages used the emoji arrows
+    // U+2194..2197 at the final four byte values. Accept them on decode; new
+    // messages emit the safe glyphs (U+219A..219D) at the same values.
+    REV.set(String.fromCodePoint(0x2194), 252);
+    REV.set(String.fromCodePoint(0x2195), 253);
+    REV.set(String.fromCodePoint(0x2196), 254);
+    REV.set(String.fromCodePoint(0x2197), 255);
+
+    function bytesToSymbols(bytes) {
+      var out = "";
+      for (var i = 0; i < bytes.length; i++) out += ALPHA[bytes[i]];
+      return out;
+    }
+
+    function symbolsToBytes(str) {
+      var arr = Array.from(str.replace(/\s+/g, "")); // tolerate stray whitespace from copy/paste
+      var out = new Uint8Array(arr.length);
+      for (var i = 0; i < arr.length; i++) {
+        var v = REV.get(arr[i]);
+        if (v === undefined) throw new Error("This looks like an encrypted message with some stray characters mixed in. Remove anything that is not a cipher symbol and try again.");
+        out[i] = v;
+      }
+      return out;
+    }
+
+    // Does this look like ciphertext (only alphabet symbols)? Used for auto encrypt/decrypt.
+    function looksLikeCipher(str) {
+      var t = str.replace(/\s+/g, "");
+      if (!t) return false;
+      var arr = Array.from(t);
+      for (var i = 0; i < arr.length; i++) if (!REV.has(arr[i])) return false;
+      return true;
+    }
+
+    // Fraction of non-whitespace characters that are cipher symbols. Lets the UI catch
+    // a symbols paste that picked up a few stray characters, instead of re-encrypting it.
+    function cipherFraction(str) {
+      var arr = Array.from(str.replace(/\s+/g, ""));
+      if (!arr.length) return 0;
+      var hits = 0;
+      for (var i = 0; i < arr.length; i++) if (REV.has(arr[i])) hits++;
+      return hits / arr.length;
+    }
+
+    // Deterministic salt derived from the FIRST word of the passphrase (lowercased).
+    // Every conversation word gives a different salt, so one precomputed dictionary
+    // cannot be reused against all users. Whitespace in the passphrase is normalized
+    // so a stray space or newline from copy/paste cannot break key agreement.
+    async function deriveKey(passphrase) {
+      var norm = (passphrase || "").trim().replace(/\s+/g, " ");
+      var first = (norm.split(" ")[0] || "").toLowerCase();
+      var seed = await subtle.digest("SHA-256", enc.encode("LinearCipher-v5|salt|" + first));
+      var salt = new Uint8Array(seed).slice(0, 16);
+      var raw = await argon2id({
+        password: norm,
+        salt: salt,
+        parallelism: ARGON.parallelism,
+        iterations: ARGON.iterations,
+        memorySize: ARGON.memorySize,
+        hashLength: ARGON.hashLength,
+        outputType: "binary"
+      });
+      // Non-secret verification fingerprint: a one-way commitment to the derived key.
+      // Safe to display; brute-forcing it still costs one Argon2id per guess.
+      var fpTag = enc.encode("LC4-fp");
+      var fpInput = new Uint8Array(raw.length + fpTag.length);
+      fpInput.set(raw, 0); fpInput.set(fpTag, raw.length);
+      var fpBuf = await subtle.digest("SHA-256", fpInput);
+      var key = await subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+      if (raw.fill) raw.fill(0); if (fpInput.fill) fpInput.fill(0);
+      return { key: key, fp: new Uint8Array(fpBuf) };
+    }
+
+    // Letters encoding: "LC5." + base64url. For channels that damage unusual symbols
+    // (e-mail clients, SMS gateways). Same packet bytes, different clothes.
+    var B64A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    var STRAY_MSG = "This looks like an encrypted message with some stray characters mixed in. Remove anything that is not part of the message and try again.";
+    function bytesToB64u(b) {
+      var out = "";
+      for (var i = 0; i < b.length; i += 3) {
+        var x = b[i], y = i + 1 < b.length ? b[i + 1] : 0, z = i + 2 < b.length ? b[i + 2] : 0;
+        out += B64A[x >> 2] + B64A[((x & 3) << 4) | (y >> 4)];
+        if (i + 1 < b.length) out += B64A[((y & 15) << 2) | (z >> 6)];
+        if (i + 2 < b.length) out += B64A[z & 63];
+      }
+      return out;
+    }
+    function b64uToBytes(t) {
+      if (!/^[A-Za-z0-9_-]+$/.test(t) || t.length % 4 === 1) throw new Error(STRAY_MSG);
+      var map = {};
+      for (var i = 0; i < 64; i++) map[B64A[i]] = i;
+      var out = new Uint8Array(Math.floor(t.length * 3 / 4)), j = 0;
+      for (var k = 0; k < t.length; k += 4) {
+        var a = map[t[k]], b = map[t[k + 1]], c = map[t[k + 2]], d = map[t[k + 3]];
+        out[j++] = (a << 2) | (b >> 4);
+        if (t[k + 2] !== undefined) out[j++] = ((b & 15) << 4) | (c >> 2);
+        if (t[k + 3] !== undefined) out[j++] = ((c & 3) << 6) | d;
+      }
+      return out;
+    }
+    function isLettersCipher(str) { return /^LC5\./.test(str.replace(/\s+/g, "")); }
+
+    // packet = [ VERSION(1) | nonce(12) | ciphertext+GCMtag(N+16) ]  -> symbols or letters
+    async function encryptToSymbols(key, plaintext, format) {
+      var nonce = new Uint8Array(12);
+      getRandomValues(nonce);
+      var ctBuf = await subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(plaintext));
+      var ct = new Uint8Array(ctBuf);
+      var packet = new Uint8Array(1 + 12 + ct.length);
+      packet[0] = VERSION;
+      packet.set(nonce, 1);
+      packet.set(ct, 13);
+      return format === "text" ? "LC5." + bytesToB64u(packet) : bytesToSymbols(packet);
+    }
+
+    async function decryptFromSymbols(key, symbols) {
+      var stripped = symbols.replace(/\s+/g, "");
+      var bytes = /^LC5\./.test(stripped) ? b64uToBytes(stripped.slice(4)) : symbolsToBytes(symbols);
+      if (bytes.length < 1 + 12 + 16) throw new Error("This message is too short to be valid ciphertext.");
+      if (bytes[0] !== VERSION) throw new Error("Unrecognized message version. Was this made with a different version of the tool?");
+      var nonce = bytes.slice(1, 13);
+      var ct = bytes.slice(13);
+      var ptBuf;
+      try {
+        ptBuf = await subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ct);
+      } catch (e) {
+        throw new Error("Could not decrypt. Check the passphrase, or the message may have been altered.");
+      }
+      return dec.decode(ptBuf);
+    }
+
+    // --- Auto-repair: on decrypt failure, search for one transcription error.
+    // The GCM tag is the oracle: only the true repair authenticates, so a wrong
+    // "fix" can never produce wrong text. No wire-format change involved.
+    var REPAIR_MAX = 800;
+    async function decryptWithRepair(key, ciphertext, onProgress) {
+      var stripped = ciphertext.replace(/\s+/g, "");
+      var letters = /^LC5\./.test(stripped);
+      var payload = letters ? stripped.slice(4) : stripped;
+      var alpha = letters ? B64A.split("") : ALPHA;
+      var inAlpha = {};
+      for (var q = 0; q < alpha.length; q++) inAlpha[alpha[q]] = 1;
+
+      function decodeQuiet(p) {
+        try { return letters ? b64uToBytes(p) : symbolsToBytes(p); } catch (e) { return null; }
+      }
+      async function tryBytes(bytes) {
+        if (!bytes || bytes.length < 29 || bytes[0] !== VERSION) return null;
+        try {
+          var buf = await subtle.decrypt({ name: "AES-GCM", iv: bytes.slice(1, 13) }, key, bytes.slice(13));
+          return dec.decode(buf);
+        } catch (e) { return null; }
+      }
+
+      var direct = await tryBytes(decodeQuiet(payload));
+      if (direct !== null) return { plaintext: direct, repair: null };
+
+      var arr = Array.from(payload), n = arr.length;
+      if (n > REPAIR_MAX) throw new Error("Could not decrypt, and the message is too long for automatic repair.");
+
+      // Foreign-character runs: each run was most likely ONE destroyed symbol.
+      var runs = [], i = 0, j;
+      while (i < n) {
+        if (!inAlpha[arr[i]]) { j = i; while (j < n && !inAlpha[arr[j]]) j++; runs.push([i, j]); i = j; }
+        else i++;
+      }
+
+      // Lazy candidate phases: {count, at(t) -> [payloadString, note] | null}
+      var phases = [];
+      var A = alpha.length;
+      function joined(a2) { return a2.join(""); }
+      if (runs.length) {
+        if (runs.length > 2) throw new Error("This looks like an encrypted message with some stray characters mixed in. Remove anything that is not part of the message and try again.");
+        if (runs.length === 1) {
+          var pre1 = joined(arr.slice(0, runs[0][0])), post1 = joined(arr.slice(runs[0][1]));
+          phases.push({ count: A, at: function (t) { return [pre1 + alpha[t] + post1, "1 destroyed symbol reconstructed"]; } });
+        } else {
+          var pre2 = joined(arr.slice(0, runs[0][0])), mid2 = joined(arr.slice(runs[0][1], runs[1][0])), post2 = joined(arr.slice(runs[1][1]));
+          phases.push({ count: A * A, at: function (t) {
+            return [pre2 + alpha[Math.floor(t / A)] + mid2 + alpha[t % A] + post2, "2 destroyed symbols reconstructed"];
+          } });
+        }
+      } else {
+        phases.push({ count: n * A, at: function (t) {  // one wrong symbol
+          var pos = Math.floor(t / A), a = t % A;
+          if (alpha[a] === arr[pos]) return null;
+          return [joined(arr.slice(0, pos)) + alpha[a] + joined(arr.slice(pos + 1)),
+                  "one wrong symbol at position " + (pos + 1) + " (" + arr[pos] + " should be " + alpha[a] + ")"];
+        } });
+        phases.push({ count: Math.max(0, n - 1), at: function (t) {  // swapped neighbours
+          if (arr[t] === arr[t + 1]) return null;
+          return [joined(arr.slice(0, t)) + arr[t + 1] + arr[t] + joined(arr.slice(t + 2)),
+                  "two swapped symbols at position " + (t + 1)];
+        } });
+        phases.push({ count: n, at: function (t) {  // one extra symbol
+          return [joined(arr.slice(0, t)) + joined(arr.slice(t + 1)),
+                  "one extra symbol at position " + (t + 1) + " removed"];
+        } });
+        phases.push({ count: (n + 1) * A, at: function (t) {  // one missing symbol
+          var pos = Math.floor(t / A), a = t % A;
+          return [joined(arr.slice(0, pos)) + alpha[a] + joined(arr.slice(pos)),
+                  "one missing symbol restored at position " + (pos + 1)];
+        } });
+      }
+
+      var total = 0, done = 0;
+      for (i = 0; i < phases.length; i++) total += phases[i].count;
+      var BATCH = 64;
+      for (i = 0; i < phases.length; i++) {
+        var ph = phases[i];
+        for (var off = 0; off < ph.count; off += BATCH) {
+          var lim = Math.min(off + BATCH, ph.count), cand = [];
+          for (var t = off; t < lim; t++) { var c = ph.at(t); if (c) cand.push(c); }
+          var results = await Promise.all(cand.map(function (c) { return tryBytes(decodeQuiet(c[0])); }));
+          for (var r = 0; r < results.length; r++) if (results[r] !== null) return { plaintext: results[r], repair: cand[r][1] };
+          done += lim - off;
+          if (onProgress) onProgress(done, total);
+        }
+      }
+      throw new Error("Could not repair. Compare your match code with the sender; different codes mean different passphrases. Otherwise the message has more damage than one symbol; ask for it to be resent.");
+    }
+
+    return {
+      VERSION: VERSION,
+      ARGON: ARGON,
+      ALPHA: ALPHA,
+      buildAlphabet: buildAlphabet,
+      bytesToSymbols: bytesToSymbols,
+      symbolsToBytes: symbolsToBytes,
+      looksLikeCipher: looksLikeCipher,
+      cipherFraction: cipherFraction,
+      isLettersCipher: isLettersCipher,
+      deriveKey: deriveKey,
+      encryptToSymbols: encryptToSymbols,
+      decryptFromSymbols: decryptFromSymbols,
+      decryptWithRepair: decryptWithRepair
+    };
+  }
+
+  if (typeof module !== "undefined" && module.exports) module.exports = { createLinearCipher: createLinearCipher };
+  else g.createLinearCipher = createLinearCipher;
+})(typeof self !== "undefined" ? self : this);
+
+</script>
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+
+  // --- Secure-context / API guard ---
+  var warn = $("ctxWarn");
+  if (!(window.crypto && window.crypto.subtle) || typeof hashwasm === "undefined") {
+    warn.style.display = "block";
+    warn.textContent = "This browser can't run the required crypto here. Open the file in a recent Chrome, Edge, Firefox or Safari (double-clicking the .html file works).";
+    return;
+  }
+
+  var lc = createLinearCipher({
+    argon2id: hashwasm.argon2id,
+    subtle: window.crypto.subtle,
+    getRandomValues: function(a){ window.crypto.getRandomValues(a); }
+  });
+
+  // Word-generator constants + unbiased sampling.
+  var WORDS_SHORT = LC_WORDS, WORDS_LARGE = LC_WORDS_LARGE;
+  var SHORT_SET = new Set(WORDS_SHORT), LARGE_SET = new Set(WORDS_LARGE);
+  var BITS_SHORT = Math.log2(WORDS_SHORT.length), BITS_LARGE = Math.log2(WORDS_LARGE.length);
+  // Rejection sampling -> provably uniform index in [0, N), zero modulo bias.
+  function randIndex(N){
+    var MAX = 4294967296, limit = MAX - (MAX % N), r = new Uint32Array(1);
+    do { window.crypto.getRandomValues(r); } while (r[0] >= limit);
+    return r[0] % N;
+  }
+
+  // --- Key cache: derive once per passphrase, reuse for every message ---
+  var cachedKey = null, cachedId = null, deriving = null;
+  async function getKey(p){
+    var id = p;
+    if (cachedKey && cachedId === id) return cachedKey;
+    if (deriving && deriving.id === id) return deriving.promise;
+    setStatus("Deriving secure key...", "work");
+    var promise = lc.deriveKey(p).then(function(k){
+      cachedKey = k; cachedId = id; deriving = null; return k;
+    });
+    deriving = { id: id, promise: promise };
+    return promise;
+  }
+  function invalidateKey(){ cachedKey = null; cachedId = null; deriving = null; }
+
+  // --- Mode ---
+  var mode = "auto";
+  var seg = $("modeSeg");
+  seg.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if (!b) return;
+    mode = b.getAttribute("data-mode");
+    Array.prototype.forEach.call(seg.children, function(c){ c.classList.toggle("active", c === b); });
+    updateLabels(); process();
+  });
+  function effectiveMode(text){
+    if (mode !== "auto") return mode;
+    if (lc.isLettersCipher(text)) return "decrypt";
+    if (lc.looksLikeCipher(text)) return "decrypt";
+    // Mostly symbols with a few strays? That is a damaged paste, not a new message.
+    var stripped = Array.from(text.replace(/\s+/g, ""));
+    if (stripped.length >= 25 && lc.cipherFraction(text) >= 0.8) return "decrypt";
+    return "encrypt";
+  }
+  function updateLabels(text){
+    var m = effectiveMode(typeof text === "string" ? text : $("input").value);
+    $("inLabel").textContent = m === "decrypt" ? "Encrypted message" : "Message";
+    $("outLabel").textContent = m === "decrypt" ? "Decrypted message" : ($("outStyle").value === "text" ? "Encrypted text" : "Encrypted symbols");
+  }
+
+  // --- Status ---
+  var statusEl = $("status");
+  function setStatus(msg, cls){ statusEl.textContent = msg || ""; statusEl.className = "status" + (cls ? " " + cls : ""); }
+
+  // --- Main processing (debounced) ---
+  var timer = null;
+  function schedule(delay){ clearTimeout(timer); timer = setTimeout(process, delay); }
+  var keyTimer = null;
+  function scheduleKey(){ clearTimeout(keyTimer); keyTimer = setTimeout(function(){ refreshMatchCode(); process(); }, 450); }
+
+  // Match code: a short, non-secret fingerprint of the passphrase.
+  // Both people must see the SAME code, or their keys differ and decryption will fail.
+  async function refreshMatchCode(){
+    var p = $("pass").value;
+    var codeEl = $("matchCode"), hintEl = $("matchHint");
+    if (!p){ codeEl.textContent = "-"; codeEl.className = "match-code"; $("copyCode").style.display = "none"; hintEl.textContent = "Appears once you have a passphrase. You will compare it with the other person."; return; }
+    codeEl.textContent = "...";
+    try{
+      var kobj = await getKey(p);
+      var fp = kobj.fp, hex = "";
+      for (var i = 0; i < 4; i++) hex += ("0" + fp[i].toString(16)).slice(-2);
+      hex = hex.toUpperCase();
+      codeEl.textContent = hex.slice(0,4) + "-" + hex.slice(4,8);
+      codeEl.className = "match-code ok";
+      $("copyCode").style.display = "";
+      hintEl.textContent = "Just a check, like a pairing code. Same code on both sides means you are set. It cannot decrypt anything, so it is safe to send in any chat.";
+    }catch(e){ codeEl.textContent = "-"; codeEl.className = "match-code"; $("copyCode").style.display = "none"; hintEl.textContent = ""; }
+  }
+  var runId = 0;
+  async function process(){
+    var myRun = ++runId;
+    var text = $("input").value;
+    var out = $("output");
+    updateLabels(text);
+    if (!text){ out.textContent = ""; setStatus(""); return; }
+
+    var pass = $("pass").value;
+    if (!pass){ out.textContent = ""; setStatus("Enter a shared passphrase first.", "err"); return; }
+
+    var m = effectiveMode(text);
+    $("repairBtn").style.display = "none";
+    try{
+      var kobj = await getKey(pass);
+      if (myRun !== runId) return; // superseded by newer input
+      if (m === "encrypt"){
+        var ct = await lc.encryptToSymbols(kobj.key, text, $("outStyle").value);
+        if (myRun !== runId) return;
+        out.textContent = ct;
+        setStatus("Encrypted: " + Array.from(ct).length + ($("outStyle").value === "text" ? " characters" : " symbols"), "ok");
+      } else {
+        var pt, viaKey = null;
+        try {
+          pt = await lc.decryptFromSymbols(kobj.key, text);
+        } catch (primaryErr) {
+          // Try the session keyring: whichever saved key authenticates is the one.
+          for (var ki = 0; ki < sessionKeys.length; ki++){
+            if (sessionKeys[ki].passphrase === pass) continue;
+            var kk = await getKey(sessionKeys[ki].passphrase);
+            if (myRun !== runId) return;
+            try { pt = await lc.decryptFromSymbols(kk.key, text); viaKey = sessionKeys[ki].code; break; }
+            catch (e2) {}
+          }
+          if (pt === undefined) throw primaryErr;
+        }
+        if (myRun !== runId) return;
+        out.textContent = pt;
+        setStatus(viaKey ? "Decrypted with saved key " + viaKey + ", authenticity verified" : "Decrypted, authenticity verified", "ok");
+      }
+    } catch(err){
+      if (myRun !== runId) return;
+      out.textContent = "";
+      var emsg = err && err.message ? err.message : "Something went wrong.";
+      if (m === "decrypt" && !/version|too short/.test(emsg)){
+        if (!/stray/.test(emsg)) emsg = "Could not decrypt. Compare your Match code with the sender. Different codes mean different passphrases. The message may also have been altered in transit.";
+        if (Array.from(text.replace(/\s+/g, "")).length <= 800) $("repairBtn").style.display = "";
+      }
+      setStatus(emsg, "err");
+    }
+  }
+
+  // --- First-word highlight (mirror overlay) + "generate the rest" suggestion ---
+  var passMirror = $("passMirror");
+  function escHtml(t){ return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  var chipsEl = $("phraseChips");
+  function updateChips(){
+    var p = $("pass");
+    var toks = p.value.trim() ? p.value.trim().split(/\s+/) : [];
+    if (p.type !== "text" || toks.length < 2){ chipsEl.className = "chips"; chipsEl.innerHTML = ""; return; }
+    var purpleN = toks.length >= 3 ? 2 : 1;
+    var out = "";
+    for (var i = 0; i < toks.length; i++) out += '<span class="chip' + (i < purpleN ? ' first' : '') + '">' + escHtml(toks[i]) + '</span>';
+    chipsEl.innerHTML = out; chipsEl.className = "chips has";
+  }
+  var shareEl = $("sharePanel");
+  function updateShare(){
+    var p = $("pass");
+    var toks = p.value.trim() ? p.value.trim().split(/\s+/) : [];
+    if (p.type !== "text" || toks.length < 3){ shareEl.className = "share"; return; }
+    $("shareHead").textContent = toks[0] + " " + toks[1];
+    $("shareTail").textContent = toks.slice(2).join(" ");
+    shareEl.className = "share has";
+  }
+  $("copyTail").addEventListener("click", function(){ $("copyPass").click(); });
+  // --- Session keyring: extra passphrases to try on decrypt. Memory only. ---
+  var sessionKeys = []; // { code, passphrase }
+  function renderKeyring(){
+    var host = $("krChips");
+    if (!sessionKeys.length){ host.innerHTML = ""; return; }
+    var html = "";
+    for (var i = 0; i < sessionKeys.length; i++)
+      html += '<span class="kr-chip"><b>' + sessionKeys[i].code + '</b><span class="x" data-i="' + i + '" title="Forget this key">&times;</span></span>';
+    host.innerHTML = html;
+  }
+  $("krChips").addEventListener("click", function(e){
+    var x = e.target.closest(".x"); if (!x) return;
+    sessionKeys.splice(parseInt(x.getAttribute("data-i"), 10), 1);
+    renderKeyring();
+  });
+  $("krAdd").addEventListener("click", async function(){
+    var p = $("pass").value.trim();
+    if (!p){ setStatus("Type or generate a passphrase first, then remember it.", "err"); return; }
+    try{
+      var kobj = await getKey(p);
+      var fp = kobj.fp, hex = "";
+      for (var i = 0; i < 4; i++) hex += ("0" + fp[i].toString(16)).slice(-2);
+      hex = hex.toUpperCase();
+      var code = hex.slice(0,4) + "-" + hex.slice(4,8);
+      for (var j = 0; j < sessionKeys.length; j++) if (sessionKeys[j].code === code){ setStatus("That key is already in the keyring (" + code + ").", "ok"); return; }
+      sessionKeys.push({ code: code, passphrase: p });
+      renderKeyring();
+      setStatus("Saved key " + code + " for this session. It will be tried automatically when decrypting.", "ok");
+    }catch(e){ setStatus("Could not save that key.", "err"); }
+  });
+
+  $("copyCode").addEventListener("click", function(){
+    var c = $("matchCode").textContent;
+    if (!/^[0-9A-F]{4}-[0-9A-F]{4}$/.test(c)) return;
+    var btn = this;
+    navigator.clipboard.writeText(c).then(function(){
+      btn.classList.add("copied"); btn.textContent = "Copied!";
+      setTimeout(function(){ btn.classList.remove("copied"); btn.textContent = "Copy code"; }, 1600);
+      setStatus("Match code copied. Safe to send anywhere. If the other person sees a different code, share the passphrase again.", "ok");
+    }).catch(function(){ setStatus("Couldn't access the clipboard. Read the code out loud instead.", "err"); });
+  });
+  function updateMirror(){
+    var p = $("pass");
+    updateChips(); updateShare();
+    if (p.type !== "text" || !p.value){
+      passMirror.style.display = "none"; p.classList.remove("mirrored"); return;
+    }
+    var three = p.value.trim().split(/\s+/).length >= 3;
+    var m = three
+      ? p.value.match(/^(\s*)(\S+\s+\S+)([\s\S]*)$/)
+      : p.value.match(/^(\s*)(\S+)([\s\S]*)$/);
+    passMirror.innerHTML = m
+      ? escHtml(m[1]) + '<span class="fw">' + escHtml(m[2]) + '</span>' + escHtml(m[3])
+      : escHtml(p.value);
+    passMirror.style.display = "flex";
+    p.classList.add("mirrored");
+    passMirror.scrollLeft = p.scrollLeft;
+  }
+  $("pass").addEventListener("scroll", function(){ passMirror.scrollLeft = this.scrollLeft; });
+  var FIRST_MIN = 6, FIRST_MAX = 24;
+  function firstWordState(){
+    var toks = $("pass").value.trim().split(/\s+/).filter(Boolean);
+    if (!toks.length) return { st: "empty", toks: toks };
+    var len = Array.from(toks[0]).length;
+    if (len < FIRST_MIN) return { st: "short", toks: toks, first: toks[0] };
+    if (len > FIRST_MAX) return { st: "long", toks: toks, first: toks[0] };
+    return { st: "ok", toks: toks, first: toks[0] };
+  }
+  function updateSuggest(){
+    var f = firstWordState();
+    var one = f.toks.length === 1;
+    var gen = $("genKey");
+    gen.disabled = f.st !== "ok";
+    gen.classList.toggle("pulse", f.st === "ok" && one);
+    gen.classList.toggle("btn-primary", f.st === "ok" && one);
+    var box = $("suggest"), txt = $("suggestText"), btn = $("suggestGen");
+    if (one && f.st === "short"){
+      box.style.display = "flex"; btn.style.display = "none";
+      txt.innerHTML = "&ldquo;<span class=\"yw\">" + escHtml(f.first) + "</span>&rdquo; needs at least " + FIRST_MIN + " letters. Keep typing, longer words are harder to guess.";
+    } else if (one && f.st === "long"){
+      box.style.display = "flex"; btn.style.display = "none";
+      txt.innerHTML = "That word is very long. Keep it under " + FIRST_MAX + " letters so it is easy to say in a call.";
+    } else if (one && f.st === "ok"){
+      box.style.display = "flex"; btn.style.display = "";
+      txt.innerHTML = "&ldquo;<span class=\"yw\">" + escHtml(f.first) + "</span>&rdquo; is <span class=\"yw\">your word</span>. Press Generate and the rest of the passphrase is made for you.";
+    } else {
+      box.style.display = "none";
+    }
+  }
+  $("suggestGen").addEventListener("click", function(){ $("genKey").click(); });
+
+  // --- Copy passphrase: appears once the phrase is complete (2+ words) ---
+  var passClipTimer = null;
+  function updateCopyPass(){
+    var toks = $("pass").value.trim().split(/\s+/).filter(Boolean);
+    $("copyPass").style.display = toks.length >= 3 ? "" : "none";
+  }
+  $("copyPass").addEventListener("click", function(){
+    var toks = $("pass").value.trim().split(/\s+/).filter(Boolean);
+    if (toks.length < 3) return;
+    var v = toks.slice(2).join(" ");
+    var btn = this;
+    navigator.clipboard.writeText(v).then(function(){
+      btn.classList.add("copied"); $("copyPassText").textContent = "Copied!";
+      setTimeout(function(){ btn.classList.remove("copied"); $("copyPassText").textContent = "Copy"; }, 1600);
+      setStatus("Copied the remaining words. Send them only after the purple words went through your other channel. The clipboard clears itself after 60 seconds.", "ok");
+      clearTimeout(passClipTimer);
+      passClipTimer = setTimeout(function(){ navigator.clipboard.writeText("").catch(function(){}); }, 60000);
+    }).catch(function(){ setStatus("Couldn't access the clipboard. Select the passphrase and copy it manually.", "err"); });
+  });
+
+  // --- Inputs ---
+  $("input").addEventListener("input", function(){ updateLabels(); schedule(220); });
+  $("pass").addEventListener("input", function(){ invalidateKey(); updateMeter(); updateMirror(); updateSuggest(); updateCopyPass(); scheduleKey(); });
+
+  // --- Show / hide passphrase ---
+  $("togglePass").addEventListener("click", function(){
+    var p = $("pass");
+    if (p.type === "password"){ p.type = "text"; this.textContent = "Hide"; }
+    else { p.type = "password"; this.textContent = "Show"; }
+    updateMirror();
+  });
+
+  // --- Generate: keep the user's typed FIRST word, fill with random words to the total ---
+  // The first word replaces the old "conversation name" - it lives inside the passphrase,
+  // so nothing extra has to be remembered outside of it. Normalized to lowercase so the
+  // two sides can't mismatch on capitalization.
+  $("genKey").addEventListener("click", function(){
+    var total = parseInt($("wordCount").value, 10) || 7;
+    var compact = $("wordStyle").value === "compact";
+    var list = compact ? WORDS_LARGE : WORDS_SHORT;
+    var bpw = compact ? BITS_LARGE : BITS_SHORT;
+    var fst = firstWordState();
+    if (fst.st !== "ok"){
+      setStatus(fst.st === "long"
+        ? "Your first word can be at most " + FIRST_MAX + " letters."
+        : "Type your first word (at least " + FIRST_MIN + " letters), then press Generate.", "err");
+      $("pass").focus();
+      return;
+    }
+    var first = fst.first.toLowerCase();
+    var words = [first];
+    while (words.length < total) words.push(list[randIndex(list.length)]);
+    var phrase = words.join(" ");
+    var p = $("pass"); p.value = phrase; p.type = "text"; $("togglePass").textContent = "Hide";
+    invalidateKey(); updateMeter(); updateMirror(); updateSuggest(); updateCopyPass(); refreshMatchCode();
+    var genBits = Math.round((total - 1) * bpw);
+    setStatus("Kept \"" + first + "\" and added " + (total - 1) + " random words. Cracking this would take " + crackTime(genBits) + ". Now share it in two parts, shown below.", "ok");
+    schedule(300);
+  });
+
+  // --- Honest strength meter ---
+  // Words drawn from our list get an EXACT count: bits = words x log2(list size).
+  // Anything else gets a clearly-labelled rough character estimate (never presented as exact).
+  function estimateBits(s){
+    if (!s) return 0;
+    s = s.replace(/\s+/g, ""); // spaces separate words, they are not secret material
+    var pool = 0;
+    if (/[a-z]/.test(s)) pool += 26;
+    if (/[A-Z]/.test(s)) pool += 26;
+    if (/[0-9]/.test(s)) pool += 10;
+    if (/[^a-zA-Z0-9]/.test(s)) pool += 32;
+    var uniq = new Set(Array.from(s)).size;
+    var effLen = Math.min(s.length, uniq + (s.length - uniq) * 0.5); // penalize heavy repetition
+    return effLen * Math.log2(pool || 1);
+  }
+  function measure(val){
+    var s = (val || "").trim();
+    if (!s) return { bits: 0, kind: "empty" };
+    var toks = s.split(/\s+/);
+    if (toks.length >= 2 && toks.every(function(t){ return SHORT_SET.has(t.toLowerCase()); }))
+      return { bits: toks.length * BITS_SHORT, kind: "words", words: toks.length };
+    if (toks.length >= 2 && toks.every(function(t){ return LARGE_SET.has(t.toLowerCase()); }))
+      return { bits: toks.length * BITS_LARGE, kind: "words", words: toks.length };
+    // v4.01: first word is the user's own; count ONLY the generated tail (conservative -
+    // an attacker may guess the personal first word).
+    var rest = toks.slice(1);
+    if (rest.length >= 2 && rest.every(function(t){ return SHORT_SET.has(t.toLowerCase()); }))
+      return { bits: rest.length * BITS_SHORT, kind: "mixed", words: rest.length };
+    if (rest.length >= 2 && rest.every(function(t){ return LARGE_SET.has(t.toLowerCase()); }))
+      return { bits: rest.length * BITS_LARGE, kind: "mixed", words: rest.length };
+    return { bits: estimateBits(s), kind: "rough" };
+  }
+  // How long a large cracking rig (about 100 modern GPUs running Argon2id at 64 MiB)
+  // would need on average. Argon2id makes every single guess expensive, which is why
+  // these thresholds are far lower than for ordinary password hashes.
+  function crackTime(bits){
+    var years = Math.pow(2, bits) / 2 / 13000 / 3.15e7;
+    if (years < 1) return "less than a year";
+    if (years < 1000) return "about " + Math.round(years) + " years";
+    if (years < 1e6) return "thousands of years";
+    if (years < 1e9) return "millions of years";
+    return "billions of years";
+  }
+  function updateMeter(){
+    var m = measure($("pass").value);
+    var bar = $("meterBar"), lbl = $("meterLabel");
+    bar.style.width = Math.max(0, Math.min(100, m.bits * 1.4)) + "%";
+    var color, txt, b = Math.round(m.bits);
+    if (m.kind === "empty"){
+      color = "var(--border)"; txt = "Passphrase strength shows here.";
+    } else if (m.kind === "rough"){
+      // Typed passwords: the character estimate cannot see reused or famous passwords,
+      // so never hand out an unqualified "Strong" here.
+      var toksR = $("pass").value.trim().split(/\s+/);
+      var core = toksR[0].toLowerCase().replace(/[^a-z]/g, "");
+      var COMMON = { password:1, passwort:1, qwerty:1, azerty:1, letmein:1, welcome:1, iloveyou:1,
+        admin:1, dragon:1, monkey:1, sunshine:1, princess:1, football:1, baseball:1, master:1,
+        shadow:1, superman:1, batman:1, secret:1, geheim:1, hallo:1, hello:1, test:1 };
+      if (toksR.length === 1 && (COMMON[core] || /^[0-9]+$/.test(toksR[0]))){
+        color = "var(--danger)";
+        txt = "That is one of the most common passwords in the world. Cracked instantly. Press Generate.";
+      } else if (toksR.length === 1){
+        color = m.bits < 45 ? "var(--danger)" : "var(--warn)";
+        txt = m.bits < 45
+          ? "About " + b + " bits. Weak. Press Generate for a strong passphrase."
+          : "About " + b + " bits, rough estimate. A single typed password is hard to judge. Generate gives guaranteed strength.";
+      } else if (m.bits >= 50){
+        color = "var(--success)";
+        txt = "About " + b + " bits, rough estimate. Probably strong. Generated words make it guaranteed.";
+      } else if (m.bits >= 40){
+        color = "var(--warn)";
+        txt = "About " + b + " bits, rough estimate. Decent. One more word makes it strong.";
+      } else {
+        color = "var(--danger)";
+        txt = "About " + b + " bits. Weak. Press Generate for a strong passphrase.";
+      }
+    } else {
+      var head = m.kind === "words"
+        ? m.words + " words, " + b + " bits. "
+        : "Your word plus " + m.words + " random words, " + b + " bits. ";
+      if (m.bits >= 50){
+        color = "var(--success)";
+        txt = head + "Strong. Cracking this would take a serious attacker " + crackTime(m.bits) + ".";
+      } else if (m.bits >= 40){
+        color = "var(--warn)";
+        txt = head + "Decent. One more word makes it strong.";
+      } else {
+        color = "var(--danger)";
+        txt = head + "Weak. Press Generate for a strong passphrase.";
+      }
+    }
+    bar.style.background = color; lbl.textContent = txt;
+  }
+
+  // --- Repair: user-initiated single-error recovery ---
+  var repairBusy = false;
+  $("repairBtn").addEventListener("click", async function(){
+    if (repairBusy) return;
+    var text = $("input").value, pass = $("pass").value;
+    if (!text || !pass) return;
+    repairBusy = true; this.disabled = true;
+    setStatus("Trying to repair the message. This can take a few seconds...", "work");
+    try{
+      var kobj = await getKey(pass);
+      var res = await lc.decryptWithRepair(kobj.key, text, function(done, total){
+        setStatus("Trying to repair the message... " + Math.round(100 * done / total) + "%", "work");
+      });
+      if ($("input").value !== text){ return; } // input changed mid-search
+      $("output").textContent = res.plaintext;
+      setStatus(res.repair
+        ? "Repaired: " + res.repair + ". Verify the content makes sense."
+        : "Decrypted, authenticity verified", "ok");
+      $("repairBtn").style.display = "none";
+    } catch(e){
+      setStatus(e && e.message ? e.message : "Could not repair.", "err");
+    } finally {
+      repairBusy = false; this.disabled = false;
+    }
+  });
+
+  // --- Copy (with best-effort clipboard auto-clear) ---
+  var clipTimer = null;
+  $("copyBtn").addEventListener("click", function(){
+    var txt = $("output").textContent; if (!txt) return;
+    var btn = this;
+    navigator.clipboard.writeText(txt).then(function(){
+      btn.classList.add("copied"); $("copyText").textContent = "Copied!";
+      setTimeout(function(){ btn.classList.remove("copied"); $("copyText").textContent = "Copy result"; }, 1600);
+      clearTimeout(clipTimer);
+      clipTimer = setTimeout(function(){ navigator.clipboard.writeText("").catch(function(){}); }, 60000);
+    }).catch(function(){ setStatus("Couldn't access the clipboard. Select the result and copy it manually.", "err"); });
+  });
+
+  // --- Clear / Panic ---
+  $("clearBtn").addEventListener("click", function(){
+    $("input").value = ""; $("output").textContent = ""; setStatus(""); updateLabels("");
+  });
+  $("panicBtn").addEventListener("click", function(){
+    $("pass").value = ""; $("input").value = ""; $("output").textContent = "";
+    sessionKeys = []; renderKeyring();
+    invalidateKey(); updateMeter(); updateMirror(); updateSuggest(); updateCopyPass(); refreshMatchCode(); setStatus("Wiped from memory.", "ok"); updateLabels("");
+  });
+
+  // --- UI preferences: theme + hidden tips. Stored locally, never any secret material. ---
+  function pref(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function setPref(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+  function applyTheme(t){
+    document.documentElement.setAttribute("data-theme", t);
+    $("themeBtn").textContent = t === "dark" ? "Light" : "Dark";
+  }
+  var theme = pref("lc-theme") === "light" ? "light" : "dark";
+  applyTheme(theme);
+  $("themeBtn").addEventListener("click", function(){
+    theme = theme === "dark" ? "light" : "dark";
+    applyTheme(theme); setPref("lc-theme", theme);
+  });
+  if (pref("lc-hide-steps") === "1") $("stepsStrip").style.display = "none";
+  if (pref("lc-outstyle") === "text") $("outStyle").value = "text";
+  $("outStyle").addEventListener("change", function(){
+    setPref("lc-outstyle", this.value); updateLabels(); process();
+  });
+  $("stepsClose").addEventListener("click", function(){
+    $("stepsStrip").style.display = "none"; setPref("lc-hide-steps", "1");
+  });
+
+  // --- Init ---
+  updateMeter(); updateMirror(); updateSuggest(); updateCopyPass(); updateLabels(""); refreshMatchCode(); renderKeyring();
+})();
+</script>
+</body>
+</html>
